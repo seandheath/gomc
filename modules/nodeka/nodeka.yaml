@@ -1,0 +1,12 @@
+---
+tmp:
+  '^[ vi`~!@#$%^&*()-_=+\[\]{};:''",.<>\?|\/\\]{36,37}$': '#capture overhead'
+  '^.+ says , ''.+': '#capture' 
+  '^You say, ''.+': '#capture' 
+  '^< (emote|social) >': '#capture'
+  '^[Xp:\d+][A:\d+][G:\d+][\d+][(|PKer)]$': '#capture overhead'
+actions:
+  '^You say, ''\''': 'dance'
+
+aliases:
+  '^nodeka': '#connect nodeka.com:9210'

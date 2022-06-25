@@ -21,8 +21,13 @@ THE SOFTWARE.
 */
 package main
 
-import "github.com/seandheath/go-mud-client/internal/client"
+import (
+	"github.com/seandheath/go-mud-client/internal/client"
+	"github.com/seandheath/go-mud-client/modules/nodeka"
+)
 
 func main() {
-	client.Run()
+	c := client.NewClient()
+	c.LoadModule("nodeka", &nodeka.Module{})
+	c.Run()
 }

@@ -8,74 +8,73 @@ import (
 )
 
 var (
-	App            *tview.Application
-	Grid           *tview.Grid
-	MainWindow     *tview.TextView
-	ChatWindow     *tview.TextView
-	OverheadWindow *tview.TextView
-	Input          *tview.InputField
+	app            *tview.Application
+	grid           *tview.Grid
+	mainWindow     *tview.TextView
+	chatWindow     *tview.TextView
+	overheadWindow *tview.TextView
+	input          *tview.InputField
 	inputHistory   []string
-	lineCount      int64
 )
 
-func Launch() {
+func (c *Client) LaunchUI() {
 	inputHistory := make([]string, 1)
 	inputHistory[0] = ""
 
 	//ScrollBuffer := make([]string, 0)
 
-	App = tview.NewApplication().
+	app = tview.NewApplication().
 		EnableMouse(true)
-	MainWindow = tview.NewTextView().
+	mainWindow = tview.NewTextView().
 		SetDynamicColors(true).
 		SetChangedFunc(func() {
-			App.Draw()
+			app.Draw()
 		})
-	ChatWindow = tview.NewTextView().
+	chatWindow = tview.NewTextView().
 		SetDynamicColors(true).
 		SetChangedFunc(func() {
-			App.Draw()
+			app.Draw()
 		})
-	OverheadWindow = tview.NewTextView().
+	overheadWindow = tview.NewTextView().
 		SetDynamicColors(true).
 		SetScrollable(false).
 		SetMaxLines(18).
 		SetChangedFunc(func() {
-			App.Draw()
+			app.Draw()
 		})
-	Input = tview.NewInputField().
-		SetDoneFunc(handleInput)
-	Grid = tview.NewGrid().
+	input = tview.NewInputField().
+		SetDoneFunc(c.handleInput)
+	grid = tview.NewGrid().
 		SetColumns(0, 40).
 		SetRows(18, 0, 1).
 		SetBorders(true).
-		AddItem(ChatWindow, 0, 0, 1, 1, 18, 0, false).
-		AddItem(OverheadWindow, 0, 1, 1, 1, 18, 40, false).
-		AddItem(MainWindow, 1, 0, 1, 2, 0, 0, false).
-		AddItem(Input, 2, 0, 1, 2, 1, 0, true)
+		AddItem(chatWindow, 0, 0, 1, 1, 18, 0, false).
+		AddItem(overheadWindow, 0, 1, 1, 1, 18, 40, false).
+		AddItem(mainWindow, 1, 0, 1, 2, 0, 0, false).
+		AddItem(input, 2, 0, 1, 2, 1, 0, true)
 
-	if err := App.SetRoot(Grid, true).SetFocus(Input).Run(); err != nil {
+	if err := app.SetRoot(grid, true).SetFocus(input).Run(); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func handleInput(key tcell.Key) {
-	text := Input.GetText()
+func (c *Client) handleInput(key tcell.Key) {
+	text := input.GetText()
 	switch key {
 	case tcell.KeyEnter:
 		if text == "" {
 			// Redo the last command
 			text = inputHistory[len(inputHistory)-1]
 		}
-		Parse(text)
-		Input.SetText("")
+		c.Parse(text)
+		input.SetText("")
 		inputHistory = append(inputHistory, text)
 	}
 }
 
-func ShowMain(text string)     { Show(text, MainWindow) }
-func ShowChat(text string)     { Show(text, ChatWindow) }
-func ShowOverhead(text string) { Show(text, OverheadWindow) }
-func Show(text string, w *tview.TextView) {
+func (c *Client) ShowMain(text string)     { c.Show(text, mainWindow) }
+func (c *Client) ShowChat(text string)     { c.Show(text, chatWindow) }
+func (c *Client) ShowOverhead(text string) { c.Show(text, overheadWindow) }
+func (c *Client) Show(text string, w *tview.TextView) {
 	w.Write([]byte(text))
 }

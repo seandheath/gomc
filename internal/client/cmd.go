@@ -3,55 +3,45 @@ package client
 import (
 	"io"
 	"net"
+	"strings"
 
 	"github.com/rivo/tview"
 )
 
-type Cmd struct {
-	Name string
-	Run  func(string)
-	Help string
+func (c *Client) CmdInit() {
+	c.AddAlias("^#connect .*$", c.connect)
+	c.AddAlias("^#capture.*$", c.capture)
 }
 
-var Commands map[string]Cmd = make(map[string]Cmd)
-
-func init() {
-	Commands["#connect"] = Cmd{"#connect", connect, "#connect <host>:<port>"}
-	Commands["#capture"] = Cmd{"#capture", capture, "#capture [chat|overhead]"}
-}
-
-func AddCommand(cmd Cmd) {
-	if _, ok := Commands[cmd.Name]; ok {
-		ShowMain("Command already exists.\n")
-	} else {
-		Commands[cmd.Name] = cmd
+// connect takes a string from the user and attempts to connect to the mud server.
+// If the connection is successful then a goroutine is launched to handle the connection.
+func (c *Client) connect(text string) {
+	if c.conn != nil {
+		c.ShowMain("Already connected.\n")
+		return
 	}
-}
-
-func connect(text string) {
+	text = strings.TrimPrefix(text, "#connect ")
 	conn, err := net.Dial("tcp", text)
 	if err != nil {
-		ShowMain("Failed to connect: " + err.Error() + "\n")
+		c.ShowMain("Failed to connect: " + err.Error() + "\n")
 	}
-	Connection = conn
-	Variables["raw"] = ""
-	Variables["text"] = ""
+	c.conn = conn
 	go func() {
-		defer Connection.Close()
-		w := tview.ANSIWriter(ActionHandler)
-		if _, err := io.Copy(w, Connection); err != nil {
-			ShowMain("Connection closed: " + err.Error() + "\n")
+		defer c.conn.Close()
+		w := tview.ANSIWriter(c)
+		if _, err := io.Copy(w, c.conn); err != nil {
+			c.ShowMain("Connection closed: " + err.Error() + "\n")
 			return
 		}
 	}()
 }
 
-func capture(text string) {
-	DoCapture = true
-	Gag = true
-	if text == "overhead" {
-		CaptureFunc = ShowOverhead
+func (c *Client) capture(text string) {
+	s := strings.TrimPrefix(text, "#capture ")
+
+	if s == "overhead" {
+		c.ShowOverhead(c.CurrentRaw)
 	} else {
-		CaptureFunc = ShowChat
+		c.ShowChat(c.CurrentRaw)
 	}
 }
