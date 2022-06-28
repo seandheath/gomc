@@ -3,7 +3,6 @@ package client
 import (
 	"net"
 	"regexp"
-	"strings"
 )
 
 type Module interface {
@@ -22,6 +21,7 @@ type Client struct {
 	aliases     []trigger
 	CurrentRaw  string
 	CurrentText string
+	Gag         bool
 }
 
 var (
@@ -31,12 +31,14 @@ var (
 
 func NewClient() *Client {
 	c := &Client{
-		server:     "",
-		conn:       nil,
-		modules:    make(map[string]Module),
-		actions:    make([]trigger, 0),
-		aliases:    make([]trigger, 0),
-		CurrentRaw: "",
+		server:      "",
+		conn:        nil,
+		modules:     make(map[string]Module),
+		actions:     make([]trigger, 0),
+		aliases:     make([]trigger, 0),
+		CurrentRaw:  "",
+		CurrentText: "",
+		Gag:         false,
 	}
 	c.CmdInit()
 	return c
@@ -106,28 +108,4 @@ func (c *Client) LoadModule(name string, m Module) {
 		c.modules[name] = m
 	}
 	c.modules[name].Load(c)
-}
-
-// Enables ActionHandler to match the io.Writer interface.
-func (c *Client) Write(p []byte) (int, error) {
-	lines := strings.Split(string(p), "\r")
-	for _, line := range lines {
-		c.CurrentRaw = line
-		c.CurrentText = stripTags(line)
-		c.CheckTriggers(c.actions, c.CurrentText)
-		c.ShowMain(c.CurrentRaw)
-	}
-	return len(p), nil
-}
-
-// stripTags strips colour tags from the given string. (Region tags are not
-// stripped.)
-func stripTags(text string) string {
-	stripped := colorPattern.ReplaceAllStringFunc(text, func(match string) string {
-		if len(match) > 2 {
-			return ""
-		}
-		return match
-	})
-	return escapePattern.ReplaceAllString(stripped, `[$1$2]`)
 }

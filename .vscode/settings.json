@@ -1,4 +1,7 @@
 {
+    "go.delveConfig": {
+        "debugAdapter": "dlv-dap"
+    },
     "cSpell.words": [
         "gdamore",
         "lbidrus",

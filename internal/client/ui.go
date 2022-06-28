@@ -38,7 +38,7 @@ func (c *Client) LaunchUI() {
 	overheadWindow = tview.NewTextView().
 		SetDynamicColors(true).
 		SetScrollable(false).
-		SetMaxLines(18).
+		SetMaxLines(16).
 		SetChangedFunc(func() {
 			app.Draw()
 		})
@@ -46,10 +46,10 @@ func (c *Client) LaunchUI() {
 		SetDoneFunc(c.handleInput)
 	grid = tview.NewGrid().
 		SetColumns(0, 40).
-		SetRows(18, 0, 1).
+		SetRows(16, 0, 1).
 		SetBorders(true).
-		AddItem(chatWindow, 0, 0, 1, 1, 18, 0, false).
-		AddItem(overheadWindow, 0, 1, 1, 1, 18, 40, false).
+		AddItem(chatWindow, 0, 0, 1, 1, 16, 0, false).
+		AddItem(overheadWindow, 0, 1, 1, 1, 16, 40, false).
 		AddItem(mainWindow, 1, 0, 1, 2, 0, 0, false).
 		AddItem(input, 2, 0, 1, 2, 1, 0, true)
 

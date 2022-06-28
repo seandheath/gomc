@@ -2,7 +2,6 @@ package nodeka
 
 import (
 	"log"
-	"strings"
 
 	"github.com/olebedev/config"
 	"github.com/seandheath/go-mud-client/internal/client"
@@ -30,8 +29,7 @@ func (m *Module) Load(c *client.Client) {
 		return
 	} else {
 		for k, v := range actions {
-			nk := strings.ReplaceAll(k, `\\`, `\`)
-			m.Client.AddAction(nk, v)
+			m.Client.AddAction(k, v)
 		}
 	}
 	aliases, err := cfg.Map("aliases")
