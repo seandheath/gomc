@@ -10,7 +10,8 @@ import (
 
 func (c *Client) CmdInit() {
 	c.AddAlias("^#connect .*$", c.connect)
-	c.AddAlias("^#capture.*$", c.capture)
+	c.AddAlias("^#capture.*$", c.Capture)
+	c.AddAlias("^#func .*$", c.ExecuteFunction)
 }
 
 // connect takes a string from the user and attempts to connect to the mud server.
@@ -65,7 +66,7 @@ func stripTags(text string) string {
 	return escapePattern.ReplaceAllString(stripped, `[$1$2]`)
 }
 
-func (c *Client) capture(text string) {
+func (c *Client) Capture(text string) {
 	s := strings.TrimPrefix(text, "#capture ")
 
 	if s == "overhead" {
@@ -73,5 +74,14 @@ func (c *Client) capture(text string) {
 		c.Gag = true
 	} else {
 		c.ShowChat(c.CurrentRaw + "\n")
+	}
+}
+
+func (c *Client) ExecuteFunction(text string) {
+	s := strings.TrimPrefix(text, "#func ")
+	if f, ok := c.fmap[s]; ok {
+		f(c.CurrentText)
+	} else {
+		c.ShowMain("Function not found:" + text + "\n")
 	}
 }

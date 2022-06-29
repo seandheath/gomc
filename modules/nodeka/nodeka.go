@@ -7,20 +7,25 @@ import (
 	"github.com/seandheath/go-mud-client/internal/client"
 )
 
-var isLoaded = false
+var (
+	isLoaded = false
+	Client   *client.Client
+	fmap     map[string]func(string) = map[string]func(string){
+		"MapLine":   MapLine,
+		"EmptyLine": EmptyLine,
+	}
+)
 
-type Module struct {
-	Client *client.Client
-}
+type Module struct{}
 
 func (m *Module) Load(c *client.Client) {
 	if isLoaded {
 		return
 	}
-	m.Client = c
+	Client = c
 	cfg, err := config.ParseYamlFile("modules/nodeka/nodeka.yaml")
 	if err != nil {
-		m.Client.ShowMain("Error loading nodeka config: " + err.Error() + "\n")
+		Client.ShowMain("Error loading nodeka config: " + err.Error() + "\n")
 		return
 	}
 	actions, err := cfg.Map("actions")
@@ -29,7 +34,7 @@ func (m *Module) Load(c *client.Client) {
 		return
 	} else {
 		for k, v := range actions {
-			m.Client.AddAction(k, v)
+			Client.AddAction(k, v)
 		}
 	}
 	aliases, err := cfg.Map("aliases")
@@ -38,8 +43,15 @@ func (m *Module) Load(c *client.Client) {
 		return
 	} else {
 		for k, v := range aliases {
-			m.Client.AddAlias(k, v)
+			Client.AddAlias(k, v)
 		}
+	}
+
+	fmap["MapLine"] = MapLine
+	fmap["EmptyLine"] = EmptyLine
+
+	for k, v := range fmap {
+		Client.RegisterFunction(k, v)
 	}
 	isLoaded = true
 }

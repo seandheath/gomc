@@ -1,7 +1,17 @@
 package nodeka
 
+var inMap = false
+
 // Handle seeing an overhead map line
-func (m *Module) MapLine(text string) {
-	m.Client.ShowOverhead(text)
-	m.Client.CurrentRaw = "" // Gag
+func MapLine(text string) {
+	inMap = true
+	Client.ShowOverhead(Client.CurrentRaw + "\n")
+	Client.Gag = true
+}
+
+func EmptyLine(text string) {
+	if inMap {
+		inMap = false
+		Client.Gag = true
+	}
 }

@@ -1,6 +1,7 @@
 ---
 actions:
-  '^[ vi`~!@#$%^&*()-_=+\[\]{};:''",.<>\?|\/\\]{36,37}$': '#capture overhead'
+  '^[ vi`~!@#$%^&*()-_=+\[\]{};:''",.<>\?|\/\\]{36,37}$': '#func MapLine'
+  '^$': '#func EmptyLine'
   '^.+ says , ''.+': '#capture' 
   '^You say, ''.+': '#capture' 
   '^< (emote|social) >': '#capture'

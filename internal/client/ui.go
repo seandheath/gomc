@@ -15,16 +15,42 @@ var (
 	overheadWindow *tview.TextView
 	input          *tview.InputField
 	inputHistory   []string
+	historyIndex   int
 )
 
 func (c *Client) LaunchUI() {
-	inputHistory := make([]string, 1)
-	inputHistory[0] = ""
-
-	//ScrollBuffer := make([]string, 0)
-
 	app = tview.NewApplication().
-		EnableMouse(true)
+		EnableMouse(true).
+		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			switch event.Key() {
+			case tcell.KeyESC:
+				mainWindow.ScrollToEnd()
+			case tcell.KeyPgUp:
+				app.SetFocus(mainWindow)
+			case tcell.KeyPgDn:
+				app.SetFocus(mainWindow)
+			case tcell.KeyUp:
+				if len(inputHistory) > 0 {
+					historyIndex += 1
+					if historyIndex > len(inputHistory) {
+						historyIndex = len(inputHistory)
+					}
+					input.SetText(inputHistory[len(inputHistory)-historyIndex])
+				}
+			case tcell.KeyDown:
+				historyIndex -= 1
+				if historyIndex <= 0 {
+					historyIndex = 0
+					input.SetText("")
+				} else {
+					input.SetText(inputHistory[len(inputHistory)-historyIndex])
+				}
+			default:
+				app.SetFocus(input)
+			}
+			return event
+		})
+
 	mainWindow = tview.NewTextView().
 		SetDynamicColors(true).
 		SetChangedFunc(func() {
@@ -62,6 +88,7 @@ func (c *Client) handleInput(key tcell.Key) {
 	text := input.GetText()
 	switch key {
 	case tcell.KeyEnter:
+		historyIndex = 0
 		if text == "" {
 			// Redo the last command
 			text = inputHistory[len(inputHistory)-1]

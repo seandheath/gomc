@@ -19,6 +19,7 @@ type Client struct {
 	modules     map[string]Module
 	actions     []trigger
 	aliases     []trigger
+	fmap        map[string]func(string)
 	CurrentRaw  string
 	CurrentText string
 	Gag         bool
@@ -36,6 +37,7 @@ func NewClient() *Client {
 		modules:     make(map[string]Module),
 		actions:     make([]trigger, 0),
 		aliases:     make([]trigger, 0),
+		fmap:        make(map[string]func(string)),
 		CurrentRaw:  "",
 		CurrentText: "",
 		Gag:         false,
@@ -108,4 +110,8 @@ func (c *Client) LoadModule(name string, m Module) {
 		c.modules[name] = m
 	}
 	c.modules[name].Load(c)
+}
+
+func (c *Client) RegisterFunction(name string, f func(string)) {
+	c.fmap[name] = f
 }
