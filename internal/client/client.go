@@ -1,8 +1,11 @@
 package client
 
 import (
+	"log"
 	"net"
 	"regexp"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 type Module interface {
@@ -14,6 +17,7 @@ type trigger struct {
 }
 
 type Client struct {
+	program     *tea.Program
 	server      string
 	conn        net.Conn
 	modules     map[string]Module
@@ -32,6 +36,7 @@ var (
 
 func NewClient() *Client {
 	c := &Client{
+		program:     tea.NewProgram(initialModel()),
 		server:      "",
 		conn:        nil,
 		modules:     make(map[string]Module),
@@ -47,7 +52,9 @@ func NewClient() *Client {
 }
 
 func (c *Client) Run() {
-	c.LaunchUI()
+	if err := c.program.Start(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 // Parse the string and send the result to the server

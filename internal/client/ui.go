@@ -1,107 +1,85 @@
 package client
 
 import (
-	"log"
+	"fmt"
 
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
+	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
-var (
-	app            *tview.Application
-	grid           *tview.Grid
-	mainWindow     *tview.TextView
-	chatWindow     *tview.TextView
-	overheadWindow *tview.TextView
-	input          *tview.InputField
-	inputHistory   []string
-	historyIndex   int
-)
+var inputStyle = func() lipgloss.Style {
+	b := lipgloss.RoundedBorder()
+	return lipgloss.NewStyle().BorderStyle(b)
+}()
 
-func (c *Client) LaunchUI() {
-	app = tview.NewApplication().
-		EnableMouse(true).
-		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-			switch event.Key() {
-			case tcell.KeyESC:
-				mainWindow.ScrollToEnd()
-			case tcell.KeyPgUp:
-				app.SetFocus(mainWindow)
-			case tcell.KeyPgDn:
-				app.SetFocus(mainWindow)
-			case tcell.KeyUp:
-				if len(inputHistory) > 0 {
-					historyIndex += 1
-					if historyIndex > len(inputHistory) {
-						historyIndex = len(inputHistory)
-					}
-					input.SetText(inputHistory[len(inputHistory)-historyIndex])
-				}
-			case tcell.KeyDown:
-				historyIndex -= 1
-				if historyIndex <= 0 {
-					historyIndex = 0
-					input.SetText("")
-				} else {
-					input.SetText(inputHistory[len(inputHistory)-historyIndex])
-				}
-			default:
-				app.SetFocus(input)
-			}
-			return event
-		})
-
-	mainWindow = tview.NewTextView().
-		SetDynamicColors(true).
-		SetChangedFunc(func() {
-			app.Draw()
-		})
-	chatWindow = tview.NewTextView().
-		SetDynamicColors(true).
-		SetChangedFunc(func() {
-			app.Draw()
-		})
-	overheadWindow = tview.NewTextView().
-		SetDynamicColors(true).
-		SetScrollable(false).
-		SetMaxLines(16).
-		SetChangedFunc(func() {
-			app.Draw()
-		})
-	input = tview.NewInputField().
-		SetDoneFunc(c.handleInput)
-	grid = tview.NewGrid().
-		SetColumns(0, 40).
-		SetRows(16, 0, 1).
-		SetBorders(true).
-		AddItem(chatWindow, 0, 0, 1, 1, 16, 0, false).
-		AddItem(overheadWindow, 0, 1, 1, 1, 16, 40, false).
-		AddItem(mainWindow, 1, 0, 1, 2, 0, 0, false).
-		AddItem(input, 2, 0, 1, 2, 1, 0, true)
-
-	if err := app.SetRoot(grid, true).SetFocus(input).Run(); err != nil {
-		log.Fatal(err)
-	}
+type model struct {
+	viewport viewport.Model
+	input    textinput.Model
+	content  string
+	ready    bool
 }
 
-func (c *Client) handleInput(key tcell.Key) {
-	text := input.GetText()
-	switch key {
-	case tcell.KeyEnter:
-		historyIndex = 0
-		if text == "" {
-			// Redo the last command
-			text = inputHistory[len(inputHistory)-1]
+func initialModel() model {
+	m := model{
+		input:   textinput.New(),
+		content: "",
+		ready:   false,
+	}
+	m.input.Focus()
+	return m
+}
+
+func (m model) Init() tea.Cmd {
+	return nil
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var (
+		cmd  tea.Cmd
+		cmds []tea.Cmd
+	)
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
 		}
-		c.Parse(text)
-		input.SetText("")
-		inputHistory = append(inputHistory, text)
+	case tea.WindowSizeMsg:
+		if !m.ready {
+			m.viewport = viewport.New(msg.Width, msg.Height-lipgloss.Height(m.input.View()))
+			m.viewport.YPosition = 0 // top of the terminal
+			m.viewport.SetContent(m.content)
+			m.input.Width = msg.Width
+			m.ready = true
+		} else {
+			cmds = append(cmds, viewport.Sync(m.viewport))
+		}
 	}
+
+	// Pass keyboard and mouse events to viewport
+	m.viewport, cmd = m.viewport.Update(msg)
+	cmds = append(cmds, cmd)
+	m.input, cmd = m.input.Update(msg)
+	cmds = append(cmds, cmd)
+
+	return m, tea.Batch(cmds...)
 }
 
-func (c *Client) ShowMain(text string)     { c.Show(text, mainWindow) }
-func (c *Client) ShowChat(text string)     { c.Show(text, chatWindow) }
-func (c *Client) ShowOverhead(text string) { c.Show(text, overheadWindow) }
-func (c *Client) Show(text string, w *tview.TextView) {
-	w.Write([]byte(text))
+func (m model) inputView() string {
+	return inputStyle.Render(m.input.View())
+}
+
+func (m model) View() string {
+	if !m.ready {
+		return "\n Initializing..."
+	}
+	return fmt.Sprintf("%s\n%s", m.viewport.View(), m.input.View())
+}
+
+func (m model) ShowMain(text string) { m.Show(text) }
+func (m model) Show(text string) {
+	m.content += text
 }
