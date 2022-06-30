@@ -1,7 +1,7 @@
 package client
 
 import (
-	"bufio"
+	"io"
 	"net"
 	"strings"
 
@@ -29,26 +29,28 @@ func (c *Client) connect(text string) {
 	c.conn = conn
 	go func() {
 		defer c.conn.Close()
-		r := bufio.NewReader(c.conn)
-		for {
-			line, err := r.ReadBytes('\r')
-			if err != nil {
-				c.ShowMain("Connection closed.\n")
-				c.conn = nil
-				return
-			}
-			c.handleLine(line[:len(line)-2]) // Removes the \n\r at the end of each line
+		w := tview.ANSIWriter(c)
+		if _, err := io.Copy(w, c.conn); err != nil {
+			c.ShowMain("Connection closed: " + err.Error() + "\n")
+			c.conn = nil
 		}
 	}()
 }
 
-func (c *Client) handleLine(bytes []byte) {
-	line := string(bytes)
-	c.CurrentRaw = tview.TranslateANSI(line)
+func (c *Client) Write(p []byte) (n int, err error) {
+	lines := strings.Split(string(p), "\r")
+	for _, line := range lines {
+		c.handleLine(line)
+	}
+	return len(p), nil
+}
+
+func (c *Client) handleLine(line string) {
+	c.CurrentRaw = line
 	c.CurrentText = stripTags(c.CurrentRaw)
-	c.CheckTriggers(c.actions, c.CurrentText)
+	c.CheckTriggers(c.actions, strings.TrimSuffix(c.CurrentText, "\n"))
 	if !c.Gag {
-		c.ShowMain(c.CurrentRaw + "\n")
+		c.ShowMain(c.CurrentRaw)
 	} else {
 		c.Gag = false
 	}
@@ -70,10 +72,10 @@ func (c *Client) Capture(text string) {
 	s := strings.TrimPrefix(text, "#capture ")
 
 	if s == "overhead" {
-		c.ShowOverhead(c.CurrentRaw + "\n")
+		c.ShowOverhead(c.CurrentRaw)
 		c.Gag = true
 	} else {
-		c.ShowChat(c.CurrentRaw + "\n")
+		c.ShowChat(c.CurrentRaw)
 	}
 }
 

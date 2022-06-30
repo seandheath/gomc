@@ -5,7 +5,7 @@ var inMap = false
 // Handle seeing an overhead map line
 func MapLine(text string) {
 	inMap = true
-	Client.ShowOverhead(Client.CurrentRaw + "\n")
+	Client.ShowOverhead(Client.CurrentRaw)
 	Client.Gag = true
 }
 
