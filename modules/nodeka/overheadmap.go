@@ -1,17 +1,20 @@
 package nodeka
 
+import "github.com/seandheath/go-mud-client/internal/client"
+
 var inMap = false
 
 // Handle seeing an overhead map line
-func MapLine(text string) {
+func MapLine(match []string) {
 	inMap = true
-	Client.ShowOverhead(Client.CurrentRaw)
-	Client.Gag = true
+	client.ShowOverhead(client.CurrentRaw)
+	client.Gag = true
 }
 
-func EmptyLine(text string) {
+// Handle seeing an empty line
+func EmptyLine(match []string) {
 	if inMap {
 		inMap = false
-		Client.Gag = true
+		client.Gag = true
 	}
 }

@@ -27,7 +27,6 @@ import (
 )
 
 func main() {
-	c := client.NewClient()
-	c.LoadModule("nodeka", &nodeka.Module{})
-	c.Run()
+	client.LoadModule("nodeka", &nodeka.Module{})
+	client.LaunchUI()
 }

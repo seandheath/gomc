@@ -18,7 +18,7 @@ var (
 	historyIndex   int
 )
 
-func (c *Client) LaunchUI() {
+func LaunchUI() {
 	app = tview.NewApplication().
 		EnableMouse(true).
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -69,7 +69,7 @@ func (c *Client) LaunchUI() {
 			app.Draw()
 		})
 	input = tview.NewInputField().
-		SetDoneFunc(c.handleInput)
+		SetDoneFunc(handleInput)
 	grid = tview.NewGrid().
 		SetColumns(0, 40).
 		SetRows(16, 0, 1).
@@ -84,7 +84,7 @@ func (c *Client) LaunchUI() {
 	}
 }
 
-func (c *Client) handleInput(key tcell.Key) {
+func handleInput(key tcell.Key) {
 	text := input.GetText()
 	switch key {
 	case tcell.KeyEnter:
@@ -93,15 +93,15 @@ func (c *Client) handleInput(key tcell.Key) {
 			// Redo the last command
 			text = inputHistory[len(inputHistory)-1]
 		}
-		c.Parse(text)
+		Parse(text)
 		input.SetText("")
 		inputHistory = append(inputHistory, text)
 	}
 }
 
-func (c *Client) ShowMain(text string)     { c.Show(text, mainWindow) }
-func (c *Client) ShowChat(text string)     { c.Show(text, chatWindow) }
-func (c *Client) ShowOverhead(text string) { c.Show(text, overheadWindow) }
-func (c *Client) Show(text string, w *tview.TextView) {
+func ShowMain(text string)     { Show(text, mainWindow) }
+func ShowChat(text string)     { Show(text, chatWindow) }
+func ShowOverhead(text string) { Show(text, overheadWindow) }
+func Show(text string, w *tview.TextView) {
 	w.Write([]byte(text))
 }

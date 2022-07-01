@@ -8,9 +8,9 @@ import (
 )
 
 var (
-	isLoaded = false
-	Client   *client.Client
-	fmap     map[string]func(string) = map[string]func(string){
+	Triggers                           = map[string]func([]string){}
+	isLoaded                           = false
+	fmap     map[string]func([]string) = map[string]func([]string){
 		"MapLine":   MapLine,
 		"EmptyLine": EmptyLine,
 	}
@@ -18,40 +18,45 @@ var (
 
 type Module struct{}
 
-func (m *Module) Load(c *client.Client) {
+func (m *Module) Load() {
 	if isLoaded {
 		return
 	}
-	Client = c
 	cfg, err := config.ParseYamlFile("modules/nodeka/nodeka.yaml")
 	if err != nil {
-		Client.ShowMain("Error loading nodeka config: " + err.Error() + "\n")
+		client.ShowMain("Error loading nodeka config: " + err.Error() + "\n")
 		return
 	}
+
+	// Have to register functions first
+	fmap["MapLine"] = MapLine
+	fmap["EmptyLine"] = EmptyLine
+
+	for k, v := range fmap {
+		client.RegisterFunction(k, v)
+	}
+
+	BuffLoad()
+
 	actions, err := cfg.Map("actions")
 	if err != nil {
 		log.Print("Error loading nodeka config: " + err.Error() + "\n")
 		return
 	} else {
 		for k, v := range actions {
-			Client.AddAction(k, v)
+			client.AddAction(k, v)
 		}
 	}
+
 	aliases, err := cfg.Map("aliases")
 	if err != nil {
 		log.Print("Error loading nodeka config: " + err.Error() + "\n")
 		return
 	} else {
 		for k, v := range aliases {
-			Client.AddAlias(k, v)
+			client.AddAlias(k, v)
 		}
 	}
 
-	fmap["MapLine"] = MapLine
-	fmap["EmptyLine"] = EmptyLine
-
-	for k, v := range fmap {
-		Client.RegisterFunction(k, v)
-	}
 	isLoaded = true
 }
