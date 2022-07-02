@@ -1,0 +1,30 @@
+---
+abilities:
+  archers competence:
+    execute: 'archers competence'
+    activation:
+      - '^You now possess the Archer''s Competence'
+      - '^Your competence is already that of the archer'
+  radical defiance:
+    execute: 'defying prayer;radical defiance'
+    activation:
+      - '^You begin to radically defy time'
+      - '^Time defial is already within you'
+  valkyrie's agility:
+    execute: 'valk agility'
+    activation:
+      - '^You now possess Valkyrian Agility'
+      - '^Valkyrian agility is yours already'
+  okaeli's cloak:
+    execute: "cast 'okaeli cloak'"
+    prevention: "aura - oe grei"
+    activation:
+      - "^Okaeli smiles down to you - a cloak appears in your hand"
+  forgetful fire:
+    execute: "forgetful fire"
+    activation:
+      - "^A red shield of fire protection guards you from its own"
+    prevention: "fire generation - intermediate skill"
+
+actions:
+  '^Okaeli smiles down to you - a cloak appears in your hand': "wear cloak"

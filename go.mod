@@ -8,5 +8,5 @@ require (
 	github.com/rivo/tview v0.0.0-20220610163003-691f46d6f500
 	golang.org/x/sys v0.0.0-20220627191245-f75cf1eec38b // indirect
 	golang.org/x/term v0.0.0-20220526004731-065cf7ba2467 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v2 v2.4.0
 )

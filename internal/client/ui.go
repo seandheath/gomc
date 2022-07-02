@@ -1,8 +1,6 @@
 package client
 
 import (
-	"log"
-
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -80,7 +78,7 @@ func LaunchUI() {
 		AddItem(input, 2, 0, 1, 2, 1, 0, true)
 
 	if err := app.SetRoot(grid, true).SetFocus(input).Run(); err != nil {
-		log.Fatal(err)
+		LogError.Println(err)
 	}
 }
 

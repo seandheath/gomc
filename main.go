@@ -22,6 +22,8 @@ THE SOFTWARE.
 package main
 
 import (
+	"fmt"
+
 	"github.com/seandheath/go-mud-client/internal/client"
 	"github.com/seandheath/go-mud-client/modules/nodeka"
 )
@@ -29,4 +31,6 @@ import (
 func main() {
 	client.LoadModule("nodeka", &nodeka.Module{})
 	client.LaunchUI()
+	fmt.Println("Press any key to exit...")
+	fmt.Scanln()
 }

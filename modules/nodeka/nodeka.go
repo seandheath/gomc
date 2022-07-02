@@ -8,9 +8,9 @@ import (
 )
 
 var (
-	Triggers                           = map[string]func([]string){}
-	isLoaded                           = false
-	fmap     map[string]func([]string) = map[string]func([]string){
+	Triggers                   = map[string]func([]string){}
+	isLoaded                   = false
+	fmap     map[string]func() = map[string]func(){
 		"MapLine":   MapLine,
 		"EmptyLine": EmptyLine,
 	}

@@ -5,20 +5,8 @@ actions:
   '^.+ says , ''.+': '#capture' 
   '^You say, ''.+': '#capture' 
   '^< (emote|social) >': '#capture'
-  '^[Xp:\d+][A:\d+][G:\d+][\d+][(|PKer)]$': '#capture overhead'
-  '^You say, ''\\''': 'dance'
+  '^Increased mastery in your ability of': '#capture'
 
 aliases:
   '^nodeka': '#connect nodeka.com:9210'
-
-abilities:
-  archers competence:
-    endurance: 100
-    activation:
-      "^You now possess the Archer's Competence\.$"
-      "^Your competence is already that of the archer\.$"
-  radical defiance:
-    endurance: 207
-    activation:
-      "^You begin to radically defy time\.$"
-      "^Time defial is already within you\.$"
+  '^cl$': 'clear'
