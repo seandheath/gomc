@@ -2,6 +2,7 @@ package nodeka
 
 import (
 	"os"
+	"regexp"
 
 	"github.com/seandheath/go-mud-client/internal/client"
 	"gopkg.in/yaml.v2"
@@ -25,7 +26,6 @@ type Cfg struct {
 }
 
 var activations = map[string]string{} // Map of activation strings to ability name
-var preventions = map[string]string{}
 var activePreventions = map[string]bool{}
 var cfg *Cfg
 
@@ -41,7 +41,7 @@ func BuffLoad() {
 		client.LogError.Println(err)
 	}
 	for re, cmd := range cfg.Actions {
-		client.AddAction(re, cmd)
+		client.AddActionString(re, cmd)
 	}
 
 	// Go through our wanted buffs and create actions for activation strings
@@ -58,27 +58,41 @@ func BuffLoad() {
 	client.AddAlias("^spel$", CheckBuffs)
 }
 
-func PreventUsed() {
-	activePreventions[client.CurrentMatches[1]] = true
-}
-
-func PreventAvailable() {
-	activePreventions[client.CurrentMatches[1]] = false
-}
-
-func isPrevented(buff *Ability) bool {
-	if activePreventions[buff.Prevention] {
-		return true
+var BuffUp client.TriggerFunc = func(re *regexp.Regexp, matches []string) {
+	if name, ok := activations[re.String()]; ok { // Get the buff name from the activation string map
+		if buff, ok := cfg.Abilities[name]; ok { // Get the buff from our buff list
+			buff.IsActive = true // Set it to active
+			if buff.Prevention != "" {
+				activePreventions[buff.Prevention] = true
+			}
+		}
 	}
-	return false
 }
 
-func CheckBuffs() {
+// BuffDown handles when a buff drops, preparing it to be cast again.
+var BuffDown client.TriggerFunc = func(re *regexp.Regexp, matches []string) {
+	if buff, ok := cfg.Abilities[matches[1]]; ok {
+		buff.IsActive = false
+	}
+}
+
+var PreventUsed client.TriggerFunc = func(re *regexp.Regexp, matches []string) {
+	activePreventions[matches[1]] = true
+}
+
+var PreventAvailable client.TriggerFunc = func(re *regexp.Regexp, matches []string) {
+	activePreventions[matches[1]] = false
+}
+var CheckBuffs client.TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	for name, buff := range cfg.Abilities {
 		if !buff.IsActive && !isPrevented(buff) {
 			DoBuff(name, buff)
 		}
 	}
+}
+
+func isPrevented(buff *Ability) bool {
+	return activePreventions[buff.Prevention]
 }
 
 func DoBuff(name string, buff *Ability) {
@@ -97,23 +111,5 @@ func DoBuff(name string, buff *Ability) {
 		client.Parse(name)
 	} else {
 		client.Parse(buff.Execute)
-	}
-}
-
-// BuffDown handles when a buff drops, preparing it to be cast again.
-func BuffDown() {
-	if buff, ok := cfg.Abilities[client.CurrentMatches[1]]; ok {
-		buff.IsActive = false
-	}
-}
-
-func BuffUp() {
-	if name, ok := activations[client.CurrentTrigger.Re.String()]; ok { // Get the buff name from the activation string map
-		if buff, ok := cfg.Abilities[name]; ok { // Get the buff from our buff list
-			buff.IsActive = true // Set it to active
-			if buff.Prevention != "" {
-				activePreventions[buff.Prevention] = true
-			}
-		}
 	}
 }

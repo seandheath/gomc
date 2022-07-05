@@ -1,6 +1,6 @@
 ---
 actions:
-  '^[ vi`~!@#$%^&*()-_=+\[\]{};:''",.<>\?|\/\\]{36,37}$': '#func MapLine'
+  '^[ vi`~!@#$%^&*()-_=+\[\]{};:''",.<>\?|\/\\]{34,37}$': '#func MapLine'
   '^$': '#func EmptyLine'
   '^.+ says , ''.+': '#capture' 
   '^You say, ''.+': '#capture' 

@@ -5,31 +5,32 @@ import (
 	"net"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 )
 
+type TriggerFunc func(*regexp.Regexp, []string)
 type Module interface {
 	Load()
 }
 type Trigger struct {
 	Re  *regexp.Regexp
-	Cmd func()
+	Cmd TriggerFunc
 }
 
 var (
-	Server         string
-	Conn           net.Conn
-	modules        map[string]Module
-	actions        []Trigger
-	aliases        []Trigger
-	fmap           map[string]func()
-	CurrentRaw     string
-	CurrentText    string
-	CurrentMatches []string
-	CurrentTrigger Trigger
-	Gag            bool
-	LogError       *log.Logger
-	LogInfo        *log.Logger
+	Server      string
+	Conn        net.Conn
+	modules     map[string]Module
+	actions     []Trigger
+	aliases     []Trigger
+	fmap        map[string]TriggerFunc
+	CurrentRaw  string
+	CurrentText string
+	Gag         bool
+	LogError    *log.Logger
+	LogInfo     *log.Logger
+	stats       runtime.MemStats
 )
 
 var (
@@ -43,7 +44,7 @@ func init() {
 	modules = make(map[string]Module)
 	actions = make([]Trigger, 0)
 	aliases = make([]Trigger, 0)
-	fmap = make(map[string]func())
+	fmap = make(map[string]TriggerFunc)
 	CurrentRaw = ""
 	CurrentText = ""
 	Gag = false
@@ -78,42 +79,26 @@ func SendNow(text string) {
 	}
 }
 
-func AddAction(rs string, cmd interface{}) { actions = addTrigger(actions, rs, cmd) }
-func AddAlias(rs string, cmd interface{})  { aliases = addTrigger(aliases, rs, cmd) }
+func AddAction(rs string, cmd TriggerFunc)  { actions = addTrigger(actions, rs, cmd) }
+func AddActionString(rs string, cmd string) { actions = addTriggerString(actions, rs, cmd) }
+func AddAlias(rs string, cmd TriggerFunc)   { aliases = addTrigger(aliases, rs, cmd) }
+func AddAliasString(rs string, cmd string)  { aliases = addTriggerString(aliases, rs, cmd) }
+
+func addTriggerString(list []Trigger, rs string, cmd string) []Trigger {
+	f := func(*regexp.Regexp, []string) {
+		Parse(cmd)
+	}
+	return addTrigger(list, rs, f)
+}
 
 // This function adds a trigger to the provided list and returns it
-func addTrigger(list []Trigger, rs string, cmd interface{}) []Trigger {
-	var f func()
-	switch ct := cmd.(type) {
-	case string:
-		if strings.HasPrefix(ct, "#func") { // Check for a function call - saves parsing later and directly registers the function now
-			tok := strings.Split(ct, " ")
-			if len(tok) != 2 { // Should show #function <name> and <name> should be registered
-				LogError.Println("Invalid function call: " + ct + "\n")
-			} else {
-				if _, ok := fmap[tok[1]]; !ok { // The function isn't registered yet
-					LogError.Println("Error: Function not found in function table, did you register it? : " + ct + "\n")
-				} else {
-					f = fmap[tok[1]]
-				}
-			}
-		} else { // Just sending some text to the mud
-			f = func() {
-				Parse(ct)
-			}
-		}
-	case func():
-		f = ct // Calls a function
-	default:
-		LogError.Println("Error: Invalid trigger type for match: " + rs + "\n")
-	}
-
+func addTrigger(list []Trigger, rs string, cmd TriggerFunc) []Trigger {
 	re, err := regexp.Compile(rs)
 	if err != nil {
 		ShowMain("Error compiling trigger: " + err.Error() + "\n")
 		return list
 	}
-	return append(list, Trigger{re, f})
+	return append(list, Trigger{re, cmd})
 }
 
 func CheckTriggers(list []Trigger, text string) bool {
@@ -122,9 +107,7 @@ func CheckTriggers(list []Trigger, text string) bool {
 		m := t.Re.FindStringSubmatch(text)
 		if len(m) > 0 {
 			matched = true
-			CurrentTrigger = t
-			CurrentMatches = m
-			CurrentTrigger.Cmd()
+			t.Cmd(t.Re, m)
 		}
 	}
 	return matched
@@ -139,6 +122,6 @@ func LoadModule(name string, m Module) {
 
 // RegisterFunction maps a string to a function so that you can call the function
 // from the mud with #function <name>
-func RegisterFunction(name string, f func()) {
+func RegisterFunction(name string, f func(*regexp.Regexp, []string)) {
 	fmap[name] = f
 }

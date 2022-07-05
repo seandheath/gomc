@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -25,68 +27,17 @@ func CmdInit() {
 	AddAlias("^#alias$", BaseAliasCmd)
 	AddAlias("^#alias {(.+)}{(.+)}$", AddAliasCmd)
 	AddAlias("^#unalias (\\d+)$", UnaliasCmd)
-}
-
-func BaseActionCmd() {
-	showtriggers(actions, "actions")
-}
-func AddActionCmd() {
-	AddAction(CurrentMatches[1], CurrentMatches[2])
-}
-func UnactionCmd() {
-	untrigger(actions, "action")
-}
-func BaseAliasCmd() {
-	showtriggers(aliases, "aliases")
-}
-func AddAliasCmd() {
-	AddAlias(CurrentMatches[1], CurrentMatches[2])
-}
-func UnaliasCmd() {
-	untrigger(aliases, "alias")
-}
-
-func showtriggers(t []Trigger, triggerType string) {
-	ShowMain("## Current " + triggerType + ":\n")
-	for i, a := range t {
-		ShowMain(fmt.Sprintf("\n[%d]: %s", i, a.Re.String()))
-	}
-	ShowMain("\n")
-}
-
-func untrigger(triggerList []Trigger, triggerType string) {
-	n, err := strconv.Atoi(CurrentMatches[1])
-	if err != nil {
-		ShowMain(fmt.Sprintf("Invalid %s number: %s\n", triggerType, CurrentMatches[1]))
-		return
-	}
-	if n >= len(actions) {
-		ShowMain(fmt.Sprintf("%s not found: %s\n", triggerType, CurrentMatches[1]))
-		return
-	}
-	tmp := append(triggerList[:n], triggerList[n+1:]...)
-	triggerList = tmp
-}
-
-// Nested triggers overwrite matches... need to pass into the function
-func LoopCmd() {
-	n, err := strconv.Atoi(CurrentMatches[1])
-	if err != nil {
-		ShowMain("Error parsing loop number: " + err.Error() + "\n")
-	}
-	for i := 0; i < n; i++ {
-		Parse(CurrentMatches[2])
-	}
+	AddAlias("^#memstats$", MemStatsCmd)
 }
 
 // ConnectCmd takes a string from the user and attempts to ConnectCmd to the mud server.
 // If the connection is successful then a goroutine is launched to handle the connection.
-func ConnectCmd() {
+var ConnectCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	if Conn != nil {
 		ShowMain("Already connected.\n")
 		return
 	}
-	text := strings.TrimPrefix(CurrentMatches[0], "#connect ")
+	text := matches[1]
 	conn, err := net.Dial("tcp", text)
 	if err != nil {
 		ShowMain("Failed to connect: " + err.Error() + "\n")
@@ -101,6 +52,93 @@ func ConnectCmd() {
 			Conn = nil
 		}
 	}()
+}
+
+var CaptureCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
+	s := strings.TrimPrefix(matches[0], "#capture ")
+
+	if s == "overhead" {
+		ShowOverhead(CurrentRaw)
+		Gag = true
+	} else {
+		ts := time.Now().Format("2006:01:02 15:04:05")
+		ShowChat(fmt.Sprintf("[%s] %s", ts, CurrentRaw))
+	}
+}
+
+var FuncCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
+	s := strings.TrimPrefix(matches[0], "#func ")
+	if f, ok := fmap[s]; ok { // Found the function
+		f(re, matches)
+	} else {
+		ShowMain("Function not found:" + matches[0] + "\n")
+	}
+}
+
+var MatchCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
+	CheckTriggers(actions, matches[1])
+}
+
+// Nested triggers overwrite matches... need to pass into the function
+var LoopCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
+	n, err := strconv.Atoi(matches[1])
+	if err != nil {
+		ShowMain("Error parsing loop number: " + err.Error() + "\n")
+	}
+	for i := 0; i < n; i++ {
+		Parse(matches[2])
+	}
+}
+
+var BaseActionCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
+	showtriggers(actions, "actions")
+}
+
+var AddActionCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
+	AddActionString(matches[1], matches[2])
+}
+
+var UnactionCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
+	actions = untrigger(actions, "action", matches[1])
+}
+
+var BaseAliasCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
+	showtriggers(aliases, "aliases")
+}
+
+var AddAliasCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
+	AddAliasString(matches[1], matches[2])
+}
+
+var UnaliasCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
+	aliases = untrigger(aliases, "alias", matches[1])
+}
+
+var MemStatsCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	ShowMain(fmt.Sprintf("Alloc: %d MiB", m.Alloc/1024/1024))
+}
+
+func showtriggers(t []Trigger, triggerType string) {
+	ShowMain("## Current " + triggerType + ":\n")
+	for i, a := range t {
+		ShowMain(fmt.Sprintf("\n[%d]: %s", i, a.Re.String()))
+	}
+	ShowMain("\n")
+}
+
+func untrigger(triggerList []Trigger, triggerType string, index string) []Trigger {
+	n, err := strconv.Atoi(index)
+	if err != nil {
+		ShowMain(fmt.Sprintf("Invalid %s number: %d\n", triggerType, n))
+		return triggerList
+	}
+	if n >= len(actions) {
+		ShowMain(fmt.Sprintf("%s not found: %d\n", triggerType, n))
+		return triggerList
+	}
+	return append(triggerList[:n], triggerList[n+1:]...)
 }
 
 func (w *Writer) Write(p []byte) (n int, err error) {
@@ -133,29 +171,4 @@ func stripTags(text string) string {
 		return match
 	})
 	return escapePattern.ReplaceAllString(stripped, `[$1$2]`)
-}
-
-func CaptureCmd() {
-	s := strings.TrimPrefix(CurrentMatches[0], "#capture ")
-
-	if s == "overhead" {
-		ShowOverhead(CurrentRaw)
-		Gag = true
-	} else {
-		ts := time.Now().Format("2006:01:02 15:04:05")
-		ShowChat(fmt.Sprintf("[%s] %s", ts, CurrentRaw))
-	}
-}
-
-func FuncCmd() {
-	s := strings.TrimPrefix(CurrentMatches[0], "#func ")
-	if f, ok := fmap[s]; ok { // Found the function
-		f()
-	} else {
-		ShowMain("Function not found:" + CurrentMatches[0] + "\n")
-	}
-}
-
-func MatchCmd() {
-	CheckTriggers(actions, CurrentMatches[1])
 }

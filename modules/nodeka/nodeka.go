@@ -2,15 +2,16 @@ package nodeka
 
 import (
 	"log"
+	"regexp"
 
 	"github.com/olebedev/config"
 	"github.com/seandheath/go-mud-client/internal/client"
 )
 
 var (
-	Triggers                   = map[string]func([]string){}
-	isLoaded                   = false
-	fmap     map[string]func() = map[string]func(){
+	Triggers                                           = map[string]func([]string){}
+	isLoaded                                           = false
+	fmap     map[string]func(*regexp.Regexp, []string) = map[string]func(*regexp.Regexp, []string){
 		"MapLine":   MapLine,
 		"EmptyLine": EmptyLine,
 	}
@@ -44,7 +45,10 @@ func (m *Module) Load() {
 		return
 	} else {
 		for k, v := range actions {
-			client.AddAction(k, v)
+			switch val := v.(type) {
+			case string:
+				client.AddActionString(k, val)
+			}
 		}
 	}
 
@@ -54,7 +58,10 @@ func (m *Module) Load() {
 		return
 	} else {
 		for k, v := range aliases {
-			client.AddAlias(k, v)
+			switch val := v.(type) {
+			case string:
+				client.AddAliasString(k, val)
+			}
 		}
 	}
 
