@@ -12,10 +12,12 @@ import (
 
 type viewData string
 type model struct {
-	content  string
-	ready    bool
-	mainView viewport.Model
-	input    textinput.Model
+	content      string
+	ready        bool
+	mainView     viewport.Model
+	input        textinput.Model
+	inputHistory []string
+	inputIndex   int
 }
 
 func initialModel() model {
@@ -72,9 +74,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-			go Parse(m.input.Value())
+			val := m.input.Value()
+			if val == "" && len(m.inputHistory) > 0 {
+				val = m.inputHistory[len(m.inputHistory)-1]
+			} else {
+				m.inputHistory = append(m.inputHistory, val)
+			}
+			m.inputIndex = len(m.inputHistory)
+			go Parse(val)
 			m.input.SetValue("")
 			m.mainView.GotoBottom()
+		case tea.KeyUp:
+			if m.inputIndex > 0 {
+				m.inputIndex -= 1
+				m.input.SetValue(m.inputHistory[m.inputIndex])
+			}
+		case tea.KeyDown:
+			if m.inputIndex < len(m.inputHistory)-1 {
+				m.inputIndex += 1
+				m.input.SetValue(m.inputHistory[m.inputIndex])
+			} else {
+				m.input.SetValue("")
+				m.inputIndex = len(m.inputHistory)
+			}
 		case tea.KeyCtrlC:
 			return m, tea.Quit
 		}
