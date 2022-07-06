@@ -1,105 +1,84 @@
 package client
 
 import (
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
+	"fmt"
+
+	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
-var (
-	app            *tview.Application
-	grid           *tview.Grid
-	mainWindow     *tview.TextView
-	chatWindow     *tview.TextView
-	overheadWindow *tview.TextView
-	input          *tview.InputField
-	inputHistory   []string
-	historyIndex   int
-)
+type viewData string
+type model struct {
+	content  string
+	ready    bool
+	mainView viewport.Model
+	input    textinput.Model
+}
 
-func LaunchUI() {
-	app = tview.NewApplication().
-		EnableMouse(true).
-		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-			switch event.Key() {
-			case tcell.KeyESC:
-				mainWindow.ScrollToEnd()
-			case tcell.KeyPgUp:
-				app.SetFocus(mainWindow)
-			case tcell.KeyPgDn:
-				app.SetFocus(mainWindow)
-			case tcell.KeyUp:
-				if len(inputHistory) > 0 {
-					historyIndex += 1
-					if historyIndex > len(inputHistory) {
-						historyIndex = len(inputHistory)
-					}
-					input.SetText(inputHistory[len(inputHistory)-historyIndex])
-				}
-			case tcell.KeyDown:
-				historyIndex -= 1
-				if historyIndex <= 0 {
-					historyIndex = 0
-					input.SetText("")
-				} else {
-					input.SetText(inputHistory[len(inputHistory)-historyIndex])
-				}
-			default:
-				app.SetFocus(input)
-			}
-			return event
-		})
-
-	mainWindow = tview.NewTextView().
-		SetDynamicColors(true).
-		SetChangedFunc(func() {
-			app.Draw()
-		})
-	chatWindow = tview.NewTextView().
-		SetDynamicColors(true).
-		SetChangedFunc(func() {
-			app.Draw()
-		})
-	overheadWindow = tview.NewTextView().
-		SetDynamicColors(true).
-		SetScrollable(false).
-		SetMaxLines(16).
-		SetChangedFunc(func() {
-			app.Draw()
-		})
-	input = tview.NewInputField().
-		SetDoneFunc(handleInput)
-	grid = tview.NewGrid().
-		SetColumns(0, 40).
-		SetRows(16, 0, 1).
-		SetBorders(true).
-		AddItem(chatWindow, 0, 0, 1, 1, 16, 0, false).
-		AddItem(overheadWindow, 0, 1, 1, 1, 16, 40, false).
-		AddItem(mainWindow, 1, 0, 1, 2, 0, 0, false).
-		AddItem(input, 2, 0, 1, 2, 1, 0, true)
-
-	if err := app.SetRoot(grid, true).SetFocus(input).Run(); err != nil {
-		LogError.Println(err)
+func initialModel() model {
+	ti := textinput.New()
+	ti.CursorStyle.Blink(false)
+	ti.Focus()
+	return model{
+		input:   ti,
+		ready:   false,
+		content: "", // TODO welcome banner
 	}
 }
 
-func handleInput(key tcell.Key) {
-	text := input.GetText()
-	switch key {
-	case tcell.KeyEnter:
-		historyIndex = 0
-		if text == "" {
-			// Redo the last command
-			text = inputHistory[len(inputHistory)-1]
+func (m model) Init() tea.Cmd { return nil }
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+
+	var cmd tea.Cmd
+	var cmds []tea.Cmd
+
+	m.mainView, cmd = m.mainView.Update(msg)
+	cmds = append(cmds, cmd)
+	m.input, cmd = m.input.Update(msg)
+	cmds = append(cmds, cmd)
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyEnter:
+			Parse(m.input.Value())
+			m.input.SetValue("")
+			m.mainView.GotoBottom()
+		case tea.KeyCtrlC:
+			return m, tea.Quit
 		}
-		Parse(text)
-		input.SetText("")
-		inputHistory = append(inputHistory, text)
+	case tea.WindowSizeMsg:
+		inputHeight := lipgloss.Height(m.input.View())
+		if !m.ready {
+			m.mainView = viewport.New(msg.Width, msg.Height-inputHeight)
+			m.mainView.YPosition = 0 // TOP
+			m.mainView.SetContent(m.content)
+			m.mainView.HighPerformanceRendering = false
+			m.ready = true
+
+		} else { // already have a window ready
+			m.mainView.Width = msg.Width
+			m.mainView.Height = msg.Height - inputHeight
+			//cmds = append(cmds, viewport.Sync(m.mainView))
+		}
+	case string:
+		m.content += msg
+		m.mainView.SetContent(m.content)
+		m.mainView.GotoBottom()
+		//cmds = append(cmds, viewport.Sync(m.mainView))
 	}
+
+	return m, tea.Batch(cmds...)
+}
+func (m model) View() string {
+	if !m.ready {
+		return "\n Initializing..."
+	}
+	return fmt.Sprintf("%s\n%s", m.mainView.View(), m.input.View())
 }
 
-func ShowMain(text string)     { Show(text, mainWindow) }
-func ShowChat(text string)     { Show(text, chatWindow) }
-func ShowOverhead(text string) { Show(text, overheadWindow) }
-func Show(text string, w *tview.TextView) {
-	w.Write([]byte(text))
-}
+//func Show(text string) { Show(text, mainWindow) }
+//func Show(text string)     { Show(text, chatWindow) }
+//func Show(text string) { Show(text, overheadWindow) }

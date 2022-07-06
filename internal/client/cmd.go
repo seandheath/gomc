@@ -9,8 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/rivo/tview"
 )
 
 type Writer struct{}
@@ -34,21 +32,20 @@ func CmdInit() {
 // If the connection is successful then a goroutine is launched to handle the connection.
 var ConnectCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	if Conn != nil {
-		ShowMain("Already connected.\n")
+		Show("Already connected.\n")
 		return
 	}
 	text := matches[1]
 	conn, err := net.Dial("tcp", text)
 	if err != nil {
-		ShowMain("Failed to connect: " + err.Error() + "\n")
+		Show("Failed to connect: " + err.Error() + "\n")
 	}
 	Conn = conn
 	go func() {
 		defer Conn.Close()
 		writer := &Writer{}
-		w := tview.ANSIWriter(writer)
-		if _, err := io.Copy(w, Conn); err != nil {
-			ShowMain("Connection closed: " + err.Error() + "\n")
+		if _, err := io.Copy(writer, Conn); err != nil {
+			Show("Connection closed: " + err.Error() + "\n")
 			Conn = nil
 		}
 	}()
@@ -58,11 +55,11 @@ var CaptureCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	s := strings.TrimPrefix(matches[0], "#capture ")
 
 	if s == "overhead" {
-		ShowOverhead(CurrentRaw)
+		Show(CurrentRaw)
 		Gag = true
 	} else {
 		ts := time.Now().Format("2006:01:02 15:04:05")
-		ShowChat(fmt.Sprintf("[%s] %s", ts, CurrentRaw))
+		Show(fmt.Sprintf("[%s] %s", ts, CurrentRaw))
 	}
 }
 
@@ -71,7 +68,7 @@ var FuncCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	if f, ok := fmap[s]; ok { // Found the function
 		f(re, matches)
 	} else {
-		ShowMain("Function not found:" + matches[0] + "\n")
+		Show("Function not found:" + matches[0] + "\n")
 	}
 }
 
@@ -83,7 +80,7 @@ var MatchCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 var LoopCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	n, err := strconv.Atoi(matches[1])
 	if err != nil {
-		ShowMain("Error parsing loop number: " + err.Error() + "\n")
+		Show("Error parsing loop number: " + err.Error() + "\n")
 	}
 	for i := 0; i < n; i++ {
 		Parse(matches[2])
@@ -117,58 +114,47 @@ var UnaliasCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 var MemStatsCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	ShowMain(fmt.Sprintf("Alloc: %d MiB", m.Alloc/1024/1024))
+	Show(fmt.Sprintf("Alloc: %d MiB", m.Alloc/1024/1024))
 }
 
 func showtriggers(t []Trigger, triggerType string) {
-	ShowMain("## Current " + triggerType + ":\n")
+	Show("## Current " + triggerType + ":\n")
 	for i, a := range t {
-		ShowMain(fmt.Sprintf("\n[%d]: %s", i, a.Re.String()))
+		Show(fmt.Sprintf("\n[%d]: %s", i, a.Re.String()))
 	}
-	ShowMain("\n")
+	Show("\n")
 }
 
 func untrigger(triggerList []Trigger, triggerType string, index string) []Trigger {
 	n, err := strconv.Atoi(index)
 	if err != nil {
-		ShowMain(fmt.Sprintf("Invalid %s number: %d\n", triggerType, n))
+		Show(fmt.Sprintf("Invalid %s number: %d\n", triggerType, n))
 		return triggerList
 	}
 	if n >= len(actions) {
-		ShowMain(fmt.Sprintf("%s not found: %d\n", triggerType, n))
+		Show(fmt.Sprintf("%s not found: %d\n", triggerType, n))
 		return triggerList
 	}
 	return append(triggerList[:n], triggerList[n+1:]...)
 }
 
 func (w *Writer) Write(p []byte) (n int, err error) {
-	lines := strings.Split(string(p), "\r")
-	for _, line := range lines {
-		line = strings.ReplaceAll(line, ";", ":") // Stops trigger abuse // TODO make config for this
-		handleLine(line)
-	}
+	//lines := strings.Split(string(p), "\r")
+	//for _, line := range lines {
+	//line = strings.ReplaceAll(line, ";", ":") // Stops trigger abuse // TODO make config for this
+	//handleLine(line)
+	//}
+	Show(string(p))
 	return len(p), nil
 }
 
 func handleLine(line string) {
 	CurrentRaw = line
-	CurrentText = stripTags(CurrentRaw)
+	CurrentText = CurrentRaw
 	CheckTriggers(actions, strings.TrimSuffix(CurrentText, "\n"))
 	if !Gag {
-		ShowMain(CurrentRaw)
+		Show(line)
 	} else {
 		Gag = false
 	}
-}
-
-// stripTags strips colour tags from the given string. (Region tags are not
-// stripped.)
-func stripTags(text string) string {
-	stripped := colorPattern.ReplaceAllStringFunc(text, func(match string) string {
-		if len(match) > 2 {
-			return ""
-		}
-		return match
-	})
-	return escapePattern.ReplaceAllString(stripped, `[$1$2]`)
 }

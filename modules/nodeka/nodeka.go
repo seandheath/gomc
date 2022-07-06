@@ -25,7 +25,7 @@ func (m *Module) Load() {
 	}
 	cfg, err := config.ParseYamlFile("modules/nodeka/nodeka.yaml")
 	if err != nil {
-		client.ShowMain("Error loading nodeka config: " + err.Error() + "\n")
+		client.Show("Error loading nodeka config: " + err.Error() + "\n")
 		return
 	}
 

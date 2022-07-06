@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 type TriggerFunc func(*regexp.Regexp, []string)
@@ -19,6 +21,8 @@ type Trigger struct {
 }
 
 var (
+	myUI        *tea.Program
+	Model       model
 	Server      string
 	Conn        net.Conn
 	modules     map[string]Module
@@ -33,11 +37,6 @@ var (
 	stats       runtime.MemStats
 )
 
-var (
-	colorPattern  = regexp.MustCompile(`\[([a-zA-Z]+|#[0-9a-zA-Z]{6}|\-)?(:([a-zA-Z]+|#[0-9a-zA-Z]{6}|\-)?(:([lbidrus]+|\-)?)?)?\]`)
-	escapePattern = regexp.MustCompile(`\[([a-zA-Z0-9_,;: \-\."#]+)\[(\[*)\]`)
-)
-
 func init() {
 	Server = ""
 	Conn = nil
@@ -50,6 +49,7 @@ func init() {
 	Gag = false
 	LogError = log.New(os.Stderr, "Error: ", log.Ldate|log.Ltime|log.Lshortfile)
 	LogInfo = log.New(os.Stderr, "Info: ", log.Ldate|log.Ltime|log.Lshortfile)
+	Model = initialModel()
 	CmdInit()
 }
 
@@ -58,7 +58,8 @@ func Parse(text string) {
 	if CheckTriggers(aliases, text) { // Check for aliases / commands
 		return
 	} else if Conn == nil { // Not connected yet
-		ShowMain("Not connected.\n")
+		//Show("Not connected.\n")
+		Show("Not connected.\n")
 		return
 	} else if strings.Contains(text, ";") { // Allow splitting commands by ;
 		s := strings.Split(text, ";")
@@ -71,11 +72,21 @@ func Parse(text string) {
 }
 
 func SendNow(text string) {
-	ShowMain(text + "\n")
+	Show(text)
+	//Show(text + "\n")
 	_, err := Conn.Write([]byte(text + "\n"))
 	if err != nil {
-		ShowMain("Error sending: " + err.Error() + "\n")
+		//Show("Error sending: " + err.Error() + "\n")
+		Show("Error sending: " + err.Error() + "\n")
 		Conn = nil
+	}
+}
+
+func LaunchUI() {
+	myUI = tea.NewProgram(Model, tea.WithAltScreen(), tea.WithMouseCellMotion())
+	if err := myUI.Start(); err != nil {
+		LogError.Fatal("Error starting program: ", err)
+		os.Exit(1)
 	}
 }
 
@@ -95,7 +106,7 @@ func addTriggerString(list []Trigger, rs string, cmd string) []Trigger {
 func addTrigger(list []Trigger, rs string, cmd TriggerFunc) []Trigger {
 	re, err := regexp.Compile(rs)
 	if err != nil {
-		ShowMain("Error compiling trigger: " + err.Error() + "\n")
+		Show("Error compiling trigger: " + err.Error() + "\n")
 		return list
 	}
 	return append(list, Trigger{re, cmd})
@@ -124,4 +135,8 @@ func LoadModule(name string, m Module) {
 // from the mud with #function <name>
 func RegisterFunction(name string, f func(*regexp.Regexp, []string)) {
 	fmap[name] = f
+}
+
+func Show(text string) {
+	myUI.Send(text)
 }
