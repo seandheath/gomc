@@ -38,7 +38,7 @@ var CaptureCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 
 var FuncCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	s := strings.TrimPrefix(matches[0], "#func ")
-	if f, ok := fmap[s]; ok { // Found the function
+	if f, ok := functions[s]; ok { // Found the function
 		f(re, matches)
 	} else {
 		Show("Function not found:" + matches[0] + "\n")

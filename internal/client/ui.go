@@ -99,6 +99,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case tea.KeyCtrlC:
 			return m, tea.Quit
+		case tea.KeyEsc:
+			m.mainView.GotoBottom()
 		}
 	case tea.WindowSizeMsg:
 		inputHeight := lipgloss.Height(m.input.View())
@@ -113,12 +115,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else { // already have a window ready
 			m.mainView.Width = msg.Width
 			m.mainView.Height = msg.Height - inputHeight
-			//cmds = append(cmds, viewport.Sync(m.mainView))
 		}
 	case string:
 		m.content += msg
+		ab := m.mainView.AtBottom()
 		m.mainView.SetContent(m.content)
-		m.mainView.GotoBottom()
+		if ab {
+			m.mainView.GotoBottom()
+		}
 	}
 
 	return m, tea.Batch(cmds...)

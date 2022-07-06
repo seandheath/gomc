@@ -12,18 +12,6 @@ type Trigger struct {
 	Cmd TriggerFunc
 }
 
-var (
-	actions []Trigger
-	aliases []Trigger
-	fmap    map[string]TriggerFunc
-)
-
-func triggerInit() {
-	actions = make([]Trigger, 0)
-	aliases = make([]Trigger, 0)
-	fmap = make(map[string]TriggerFunc)
-}
-
 var BaseActionCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	showtriggers(actions, "actions")
 }

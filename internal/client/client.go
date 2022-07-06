@@ -11,13 +11,17 @@ import (
 )
 
 var (
-	myUI        *tea.Program
+	UI          *tea.Program
 	Conn        net.Conn
 	CurrentRaw  string
 	CurrentText string
 	Gag         bool
 	LogError    *log.Logger
 	LogInfo     *log.Logger
+	actions     []Trigger
+	aliases     []Trigger
+	functions   map[string]TriggerFunc
+	modules     []Module
 )
 
 func init() {
@@ -27,7 +31,6 @@ func init() {
 	Gag = false
 	LogError = log.New(os.Stderr, "Error: ", log.Ldate|log.Ltime|log.Lshortfile)
 	LogInfo = log.New(os.Stderr, "Info: ", log.Ldate|log.Ltime|log.Lshortfile)
-	triggerInit()
 	moduleInit()
 	cmdInit()
 }
@@ -61,8 +64,8 @@ func SendNow(text string) {
 }
 
 func LaunchUI() {
-	myUI = tea.NewProgram(initialModel(), tea.WithAltScreen(), tea.WithMouseCellMotion())
-	if err := myUI.Start(); err != nil {
+	UI = tea.NewProgram(initialModel(), tea.WithAltScreen(), tea.WithMouseCellMotion())
+	if err := UI.Start(); err != nil {
 		LogError.Fatal("Error starting program: ", err)
 		os.Exit(1)
 	}
@@ -112,9 +115,9 @@ func LoadModule(name string, m Module) {
 // RegisterFunction maps a string to a function so that you can call the function
 // from the mud with #function <name>
 func RegisterFunction(name string, f func(*regexp.Regexp, []string)) {
-	fmap[name] = f
+	functions[name] = f
 }
 
 func Show(text string) {
-	myUI.Send(text)
+	UI.Send(text)
 }

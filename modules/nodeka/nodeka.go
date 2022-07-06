@@ -2,16 +2,15 @@ package nodeka
 
 import (
 	"log"
-	"regexp"
 
 	"github.com/olebedev/config"
 	"github.com/seandheath/go-mud-client/internal/client"
 )
 
 var (
-	Triggers                                           = map[string]func([]string){}
-	isLoaded                                           = false
-	fmap     map[string]func(*regexp.Regexp, []string) = map[string]func(*regexp.Regexp, []string){
+	Triggers = map[string]client.TriggerFunc{}
+	isLoaded = false
+	fmap     = map[string]client.TriggerFunc{
 		"MapLine":   MapLine,
 		"EmptyLine": EmptyLine,
 	}
