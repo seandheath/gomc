@@ -3,6 +3,7 @@ package client
 import (
 	"fmt"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -28,6 +29,34 @@ func initialModel() model {
 	}
 }
 
+func newKeyMap() viewport.KeyMap {
+	return viewport.KeyMap{
+		PageDown: key.NewBinding(
+			key.WithKeys("pgdown"),
+		),
+		PageUp: key.NewBinding(
+			key.WithKeys("pgup"),
+			key.WithHelp("pgup", "page up"),
+		),
+		HalfPageUp: key.NewBinding(
+			key.WithKeys("ctrl+k"),
+			key.WithHelp("ctrl+k", "½ page up"),
+		),
+		HalfPageDown: key.NewBinding(
+			key.WithKeys("ctrl+j"),
+			key.WithHelp("ctrl+j", "½ page down"),
+		),
+		Up: key.NewBinding(
+			key.WithKeys("ctrl+up"),
+			key.WithHelp("ctrl+↑", "up"),
+		),
+		Down: key.NewBinding(
+			key.WithKeys("ctrl+down", "j"),
+			key.WithHelp("ctrl+↓", "down"),
+		),
+	}
+}
+
 func (m model) Init() tea.Cmd { return nil }
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
@@ -43,7 +72,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-			Parse(m.input.Value())
+			go Parse(m.input.Value())
 			m.input.SetValue("")
 			m.mainView.GotoBottom()
 		case tea.KeyCtrlC:
@@ -53,6 +82,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		inputHeight := lipgloss.Height(m.input.View())
 		if !m.ready {
 			m.mainView = viewport.New(msg.Width, msg.Height-inputHeight)
+			m.mainView.KeyMap = newKeyMap()
 			m.mainView.YPosition = 0 // TOP
 			m.mainView.SetContent(m.content)
 			m.mainView.HighPerformanceRendering = false

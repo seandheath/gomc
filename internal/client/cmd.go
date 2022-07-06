@@ -1,8 +1,9 @@
 package client
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
-	"io"
 	"net"
 	"regexp"
 	"runtime"
@@ -43,12 +44,53 @@ var ConnectCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	Conn = conn
 	go func() {
 		defer Conn.Close()
-		writer := &Writer{}
-		if _, err := io.Copy(writer, Conn); err != nil {
-			Show("Connection closed: " + err.Error() + "\n")
-			Conn = nil
+		buffer := make([]byte, bufio.MaxScanTokenSize)
+		scanner := bufio.NewScanner(Conn)
+		scanner.Split(Split)
+		scanner.Buffer(buffer, bufio.MaxScanTokenSize)
+		for scanner.Scan() {
+			CurrentRaw := scanner.Text()
+			CurrentText := Strip(CurrentRaw)
+			CheckTriggers(actions, strings.TrimSuffix(CurrentText, "\n"))
+			Show(CurrentRaw)
 		}
+
+		//writer := &Writer{}
+		//if _, err := io.Copy(writer, Conn); err != nil {
+		//Show("Connection closed: " + err.Error() + "\n")
+		//Conn = nil
+		//}
 	}()
+}
+
+const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
+
+var ansiRegexp = regexp.MustCompile(ansi)
+
+func Strip(str string) string {
+	return ansiRegexp.ReplaceAllString(str, "")
+}
+
+var lastRead time.Time = time.Now()
+
+func Split(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+	if len(data) > 0 {
+		if i := bytes.IndexByte(data, '\r'); i >= 0 {
+			lastRead = time.Now()
+			return i + 1, data[0:i], nil
+		}
+		if timeout := lastRead.Add(time.Millisecond * 100); timeout.After(time.Now()) {
+			lastRead = time.Now()
+			return len(data), data, nil
+		}
+	}
+	if atEOF {
+		return len(data), data, nil
+	}
+	return 0, nil, nil
 }
 
 var CaptureCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
