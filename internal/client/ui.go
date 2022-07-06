@@ -119,7 +119,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.content += msg
 		m.mainView.SetContent(m.content)
 		m.mainView.GotoBottom()
-		//cmds = append(cmds, viewport.Sync(m.mainView))
 	}
 
 	return m, tea.Batch(cmds...)
@@ -130,7 +129,3 @@ func (m model) View() string {
 	}
 	return fmt.Sprintf("%s\n%s", m.mainView.View(), m.input.View())
 }
-
-//func Show(text string) { Show(text, mainWindow) }
-//func Show(text string)     { Show(text, chatWindow) }
-//func Show(text string) { Show(text, overheadWindow) }
