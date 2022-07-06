@@ -34,9 +34,6 @@ github.com/muesli/reflow/wrap
 # github.com/muesli/termenv v0.12.0
 ## explicit
 github.com/muesli/termenv
-# github.com/olebedev/config v0.0.0-20190528211619-364964f3a8e4
-## explicit
-github.com/olebedev/config
 # github.com/rivo/uniseg v0.2.0
 github.com/rivo/uniseg
 # golang.org/x/sys v0.0.0-20220704084225-05e143d24a9e

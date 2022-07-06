@@ -10,12 +10,19 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type viewData string
+// Window represents a new window in the client. The window must
+// provide the height, width, and X, Y coordinates of the top left corner.
+// A value of 0 for X and Y indicates the top left corner.
+// A value of 0 on Width or Height represents the full width or height of the terminal.
+var mainStyle = lipgloss.NewStyle().
+	Width(100).
+	Height(60)
+
 type model struct {
 	content      string
 	ready        bool
-	mainView     viewport.Model
 	input        textinput.Model
+	viewport     viewport.Model
 	inputHistory []string
 	inputIndex   int
 }
@@ -25,9 +32,7 @@ func initialModel() model {
 	ti.CursorStyle.Blink(false)
 	ti.Focus()
 	return model{
-		input:   ti,
-		ready:   false,
-		content: "", // TODO welcome banner
+		input: ti,
 	}
 }
 
@@ -60,15 +65,15 @@ func newKeyMap() viewport.KeyMap {
 }
 
 func (m model) Init() tea.Cmd { return nil }
+func UpdateWindow(w *viewport.Model, msg tea.Msg) tea.Cmd {
+	model, cmd := w.Update(msg)
+	w = &model
+	return cmd
+}
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
-
-	m.mainView, cmd = m.mainView.Update(msg)
-	cmds = append(cmds, cmd)
-	m.input, cmd = m.input.Update(msg)
-	cmds = append(cmds, cmd)
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -83,7 +88,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.inputIndex = len(m.inputHistory)
 			go Parse(val)
 			m.input.SetValue("")
-			m.mainView.GotoBottom()
+			m.viewport.GotoBottom()
 		case tea.KeyUp:
 			if m.inputIndex > 0 {
 				m.inputIndex -= 1
@@ -100,36 +105,40 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC:
 			return m, tea.Quit
 		case tea.KeyEsc:
-			m.mainView.GotoBottom()
+			m.viewport.GotoBottom()
 		}
 	case tea.WindowSizeMsg:
 		inputHeight := lipgloss.Height(m.input.View())
-		if !m.ready {
-			m.mainView = viewport.New(msg.Width, msg.Height-inputHeight)
-			m.mainView.KeyMap = newKeyMap()
-			m.mainView.YPosition = 0 // TOP
-			m.mainView.SetContent(m.content)
-			m.mainView.HighPerformanceRendering = false
+		if !m.ready { // Initial setup
+			m.viewport = viewport.New(msg.Width, msg.Height-inputHeight)
+			m.viewport.KeyMap = newKeyMap()
+			m.viewport.YPosition = 0 // TOP
+			m.viewport.SetContent(m.content)
+			m.viewport.HighPerformanceRendering = false
 			m.ready = true
 
 		} else { // already have a window ready
-			m.mainView.Width = msg.Width
-			m.mainView.Height = msg.Height - inputHeight
+			m.viewport.Width = msg.Width
+			m.viewport.Height = msg.Height - inputHeight
 		}
 	case string:
 		m.content += msg
-		ab := m.mainView.AtBottom()
-		m.mainView.SetContent(m.content)
+		ab := m.viewport.AtBottom()
+		m.viewport.SetContent(m.content)
 		if ab {
-			m.mainView.GotoBottom()
+			m.viewport.GotoBottom()
 		}
 	}
 
+	m.viewport, cmd = m.viewport.Update(msg)
+	cmds = append(cmds, cmd)
+	m.input, cmd = m.input.Update(msg)
+	cmds = append(cmds, cmd)
 	return m, tea.Batch(cmds...)
 }
 func (m model) View() string {
 	if !m.ready {
 		return "\n Initializing..."
 	}
-	return fmt.Sprintf("%s\n%s", m.mainView.View(), m.input.View())
+	return fmt.Sprintf("%s\n%s", mainStyle.Render(m.viewport.View()), m.input.View())
 }

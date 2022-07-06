@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	UI          *tea.Program
+	program     *tea.Program
 	Conn        net.Conn
 	CurrentRaw  string
 	CurrentText string
@@ -21,7 +21,7 @@ var (
 	actions     []Trigger
 	aliases     []Trigger
 	functions   map[string]TriggerFunc
-	modules     []Module
+	plugins     map[string]*PluginConfig
 )
 
 func init() {
@@ -31,7 +31,10 @@ func init() {
 	Gag = false
 	LogError = log.New(os.Stderr, "Error: ", log.Ldate|log.Ltime|log.Lshortfile)
 	LogInfo = log.New(os.Stderr, "Info: ", log.Ldate|log.Ltime|log.Lshortfile)
-	moduleInit()
+	actions = []Trigger{}
+	aliases = []Trigger{}
+	functions = map[string]TriggerFunc{}
+	plugins = map[string]*PluginConfig{}
 	cmdInit()
 }
 
@@ -64,8 +67,8 @@ func SendNow(text string) {
 }
 
 func LaunchUI() {
-	UI = tea.NewProgram(initialModel(), tea.WithAltScreen(), tea.WithMouseCellMotion())
-	if err := UI.Start(); err != nil {
+	program = tea.NewProgram(initialModel(), tea.WithAltScreen(), tea.WithMouseCellMotion())
+	if err := program.Start(); err != nil {
 		LogError.Fatal("Error starting program: ", err)
 		os.Exit(1)
 	}
@@ -105,19 +108,25 @@ func CheckTriggers(list []Trigger, text string) bool {
 	return matched
 }
 
-func LoadModule(name string, m Module) {
-	if _, ok := modules[name]; !ok {
-		modules[name] = m
+func LoadPlugin(name string, p *PluginConfig) {
+	for re, cmd := range p.Actions {
+		AddActionString(re, cmd)
 	}
-	modules[name].Load()
+	for re, cmd := range p.Aliases {
+		AddAliasString(re, cmd)
+	}
+	for n, f := range p.Functions {
+		AddFunction(n, f)
+	}
+	plugins[name] = p
 }
 
-// RegisterFunction maps a string to a function so that you can call the function
+// AddFunction maps a string to a function so that you can call the function
 // from the mud with #function <name>
-func RegisterFunction(name string, f func(*regexp.Regexp, []string)) {
+func AddFunction(name string, f func(*regexp.Regexp, []string)) {
 	functions[name] = f
 }
 
 func Show(text string) {
-	UI.Send(text)
+	program.Send(text)
 }
