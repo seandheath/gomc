@@ -1,10 +1,7 @@
 package client
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
-	"net"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -12,9 +9,7 @@ import (
 	"time"
 )
 
-type Writer struct{}
-
-func CmdInit() {
+func cmdInit() {
 	AddAlias("^#connect (.*)$", ConnectCmd)
 	AddAlias("^#capture ?(.*)$", CaptureCmd)
 	AddAlias("^#func (.*)$", FuncCmd)
@@ -27,70 +22,6 @@ func CmdInit() {
 	AddAlias("^#alias {(.+)}{(.+)}$", AddAliasCmd)
 	AddAlias("^#unalias (\\d+)$", UnaliasCmd)
 	AddAlias("^#memstats$", MemStatsCmd)
-}
-
-// ConnectCmd takes a string from the user and attempts to ConnectCmd to the mud server.
-// If the connection is successful then a goroutine is launched to handle the connection.
-var ConnectCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
-	if Conn != nil {
-		Show("Already connected.\n")
-		return
-	}
-	text := matches[1]
-	conn, err := net.Dial("tcp", text)
-	if err != nil {
-		Show("Failed to connect: " + err.Error() + "\n")
-	}
-	Conn = conn
-	go func() {
-		defer Conn.Close()
-		buffer := make([]byte, bufio.MaxScanTokenSize)
-		scanner := bufio.NewScanner(Conn)
-		scanner.Split(Split)
-		scanner.Buffer(buffer, bufio.MaxScanTokenSize)
-		for scanner.Scan() {
-			CurrentRaw := scanner.Text()
-			CurrentText := Strip(CurrentRaw)
-			CheckTriggers(actions, strings.TrimSuffix(CurrentText, "\n"))
-			Show(CurrentRaw)
-		}
-
-		//writer := &Writer{}
-		//if _, err := io.Copy(writer, Conn); err != nil {
-		//Show("Connection closed: " + err.Error() + "\n")
-		//Conn = nil
-		//}
-	}()
-}
-
-const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
-
-var ansiRegexp = regexp.MustCompile(ansi)
-
-func Strip(str string) string {
-	return ansiRegexp.ReplaceAllString(str, "")
-}
-
-var lastRead time.Time = time.Now()
-
-func Split(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	if atEOF && len(data) == 0 {
-		return 0, nil, nil
-	}
-	if len(data) > 0 {
-		if i := bytes.IndexByte(data, '\r'); i >= 0 {
-			lastRead = time.Now()
-			return i + 1, data[0:i], nil
-		}
-		if timeout := lastRead.Add(time.Millisecond * 100); timeout.After(time.Now()) {
-			lastRead = time.Now()
-			return len(data), data, nil
-		}
-	}
-	if atEOF {
-		return len(data), data, nil
-	}
-	return 0, nil, nil
 }
 
 var CaptureCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
@@ -129,74 +60,8 @@ var LoopCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	}
 }
 
-var BaseActionCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
-	showtriggers(actions, "actions")
-}
-
-var AddActionCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
-	AddActionString(matches[1], matches[2])
-}
-
-var UnactionCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
-	actions = untrigger(actions, "action", matches[1])
-}
-
-var BaseAliasCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
-	showtriggers(aliases, "aliases")
-}
-
-var AddAliasCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
-	AddAliasString(matches[1], matches[2])
-}
-
-var UnaliasCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
-	aliases = untrigger(aliases, "alias", matches[1])
-}
-
 var MemStatsCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	Show(fmt.Sprintf("Alloc: %d MiB", m.Alloc/1024/1024))
-}
-
-func showtriggers(t []Trigger, triggerType string) {
-	Show("## Current " + triggerType + ":\n")
-	for i, a := range t {
-		Show(fmt.Sprintf("\n[%d]: %s", i, a.Re.String()))
-	}
-	Show("\n")
-}
-
-func untrigger(triggerList []Trigger, triggerType string, index string) []Trigger {
-	n, err := strconv.Atoi(index)
-	if err != nil {
-		Show(fmt.Sprintf("Invalid %s number: %d\n", triggerType, n))
-		return triggerList
-	}
-	if n >= len(actions) {
-		Show(fmt.Sprintf("%s not found: %d\n", triggerType, n))
-		return triggerList
-	}
-	return append(triggerList[:n], triggerList[n+1:]...)
-}
-
-func (w *Writer) Write(p []byte) (n int, err error) {
-	//lines := strings.Split(string(p), "\r")
-	//for _, line := range lines {
-	//line = strings.ReplaceAll(line, ";", ":") // Stops trigger abuse // TODO make config for this
-	//handleLine(line)
-	//}
-	Show(string(p))
-	return len(p), nil
-}
-
-func handleLine(line string) {
-	CurrentRaw = line
-	CurrentText = CurrentRaw
-	CheckTriggers(actions, strings.TrimSuffix(CurrentText, "\n"))
-	if !Gag {
-		Show(line)
-	} else {
-		Gag = false
-	}
 }

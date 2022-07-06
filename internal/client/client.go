@@ -5,52 +5,31 @@ import (
 	"net"
 	"os"
 	"regexp"
-	"runtime"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type TriggerFunc func(*regexp.Regexp, []string)
-type Module interface {
-	Load()
-}
-type Trigger struct {
-	Re  *regexp.Regexp
-	Cmd TriggerFunc
-}
-
 var (
 	myUI        *tea.Program
-	Model       model
-	Server      string
 	Conn        net.Conn
-	modules     map[string]Module
-	actions     []Trigger
-	aliases     []Trigger
-	fmap        map[string]TriggerFunc
 	CurrentRaw  string
 	CurrentText string
 	Gag         bool
 	LogError    *log.Logger
 	LogInfo     *log.Logger
-	stats       runtime.MemStats
 )
 
 func init() {
-	Server = ""
 	Conn = nil
-	modules = make(map[string]Module)
-	actions = make([]Trigger, 0)
-	aliases = make([]Trigger, 0)
-	fmap = make(map[string]TriggerFunc)
 	CurrentRaw = ""
 	CurrentText = ""
 	Gag = false
 	LogError = log.New(os.Stderr, "Error: ", log.Ldate|log.Ltime|log.Lshortfile)
 	LogInfo = log.New(os.Stderr, "Info: ", log.Ldate|log.Ltime|log.Lshortfile)
-	Model = initialModel()
-	CmdInit()
+	triggerInit()
+	moduleInit()
+	cmdInit()
 }
 
 // Parse the string and send the result to the server
@@ -72,8 +51,7 @@ func Parse(text string) {
 }
 
 func SendNow(text string) {
-	Show(text)
-	//Show(text + "\n")
+	Show(text + "\n")
 	_, err := Conn.Write([]byte(text + "\n"))
 	if err != nil {
 		//Show("Error sending: " + err.Error() + "\n")
@@ -83,7 +61,7 @@ func SendNow(text string) {
 }
 
 func LaunchUI() {
-	myUI = tea.NewProgram(Model, tea.WithAltScreen(), tea.WithMouseCellMotion())
+	myUI = tea.NewProgram(initialModel(), tea.WithAltScreen(), tea.WithMouseCellMotion())
 	if err := myUI.Start(); err != nil {
 		LogError.Fatal("Error starting program: ", err)
 		os.Exit(1)
