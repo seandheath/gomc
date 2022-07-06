@@ -14,15 +14,15 @@ import (
 // provide the height, width, and X, Y coordinates of the top left corner.
 // A value of 0 for X and Y indicates the top left corner.
 // A value of 0 on Width or Height represents the full width or height of the terminal.
-var mainStyle = lipgloss.NewStyle().
-	Width(100).
-	Height(60)
 
+type window struct {
+	content string
+	vp      *viewport.Model
+}
 type model struct {
-	content      string
 	ready        bool
 	input        textinput.Model
-	viewport     viewport.Model
+	win          map[string]*window
 	inputHistory []string
 	inputIndex   int
 }
@@ -33,6 +33,7 @@ func initialModel() model {
 	ti.Focus()
 	return model{
 		input: ti,
+		win:   map[string]*window{},
 	}
 }
 
@@ -88,7 +89,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.inputIndex = len(m.inputHistory)
 			go Parse(val)
 			m.input.SetValue("")
-			m.viewport.GotoBottom()
 		case tea.KeyUp:
 			if m.inputIndex > 0 {
 				m.inputIndex -= 1
@@ -105,32 +105,40 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC:
 			return m, tea.Quit
 		case tea.KeyEsc:
-			m.viewport.GotoBottom()
+			m.win["main"].vp.GotoBottom()
 		}
 	case tea.WindowSizeMsg:
 		inputHeight := lipgloss.Height(m.input.View())
 		if !m.ready { // Initial setup
-			m.viewport = viewport.New(msg.Width, msg.Height-inputHeight)
-			m.viewport.KeyMap = newKeyMap()
-			m.viewport.YPosition = 0 // TOP
-			m.viewport.SetContent(m.content)
-			m.viewport.HighPerformanceRendering = false
+			v := viewport.New(msg.Width, msg.Height-inputHeight)
+			m.win["main"] = &window{"", &v}
+			m.win["main"].vp.KeyMap = newKeyMap()
+			m.win["main"].vp.YPosition = 0 // TOP
+			m.win["main"].vp.SetContent(m.win["main"].content)
+			m.win["main"].vp.HighPerformanceRendering = false
 			m.ready = true
+			m.win["main"].vp.GotoBottom()
 
 		} else { // already have a window ready
-			m.viewport.Width = msg.Width
-			m.viewport.Height = msg.Height - inputHeight
+			m.win["main"].vp.Width = msg.Width
+			m.win["main"].vp.Height = msg.Height - inputHeight
+			m.win["main"].vp.GotoBottom()
 		}
-	case string:
-		m.content += msg
-		ab := m.viewport.AtBottom()
-		m.viewport.SetContent(m.content)
-		if ab {
-			m.viewport.GotoBottom()
+	case showText:
+		if w, ok := m.win[msg.window]; ok {
+			ab := w.vp.AtBottom()
+			w.content += msg.text
+			w.vp.SetContent(w.content)
+			if ab {
+				w.vp.GotoBottom()
+			}
+		} else {
+			go ShowMain(fmt.Sprintf("\nUnable to show text [%s] in window [%s], window not found.\n", msg.text, msg.window))
 		}
 	}
 
-	m.viewport, cmd = m.viewport.Update(msg)
+	v, cmd := m.win["main"].vp.Update(msg)
+	m.win["main"].vp = &v
 	cmds = append(cmds, cmd)
 	m.input, cmd = m.input.Update(msg)
 	cmds = append(cmds, cmd)
@@ -140,5 +148,5 @@ func (m model) View() string {
 	if !m.ready {
 		return "\n Initializing..."
 	}
-	return fmt.Sprintf("%s\n%s", mainStyle.Render(m.viewport.View()), m.input.View())
+	return fmt.Sprintf("%s\n%s", m.win["main"].vp.View(), m.input.View())
 }

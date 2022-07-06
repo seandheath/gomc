@@ -43,8 +43,7 @@ func Parse(text string) {
 	if CheckTriggers(aliases, text) { // Check for aliases / commands
 		return
 	} else if Conn == nil { // Not connected yet
-		//Show("Not connected.\n")
-		Show("Not connected.\n")
+		ShowMain("Not connected.\n")
 		return
 	} else if strings.Contains(text, ";") { // Allow splitting commands by ;
 		s := strings.Split(text, ";")
@@ -57,17 +56,20 @@ func Parse(text string) {
 }
 
 func SendNow(text string) {
-	Show(text + "\n")
+	ShowMain(text + "\n")
 	_, err := Conn.Write([]byte(text + "\n"))
 	if err != nil {
-		//Show("Error sending: " + err.Error() + "\n")
-		Show("Error sending: " + err.Error() + "\n")
+		ShowMain("Error sending: " + err.Error() + "\n")
 		Conn = nil
 	}
 }
 
-func LaunchUI() {
-	program = tea.NewProgram(initialModel(), tea.WithAltScreen(), tea.WithMouseCellMotion())
+func Run() {
+	program = tea.NewProgram(
+		initialModel(),
+		tea.WithAltScreen(),
+		tea.WithMouseCellMotion(),
+	)
 	if err := program.Start(); err != nil {
 		LogError.Fatal("Error starting program: ", err)
 		os.Exit(1)
@@ -90,7 +92,7 @@ func addTriggerString(list []Trigger, rs string, cmd string) []Trigger {
 func addTrigger(list []Trigger, rs string, cmd TriggerFunc) []Trigger {
 	re, err := regexp.Compile(rs)
 	if err != nil {
-		Show("Error compiling trigger: " + err.Error() + "\n")
+		ShowMain("Error compiling trigger: " + err.Error() + "\n")
 		return list
 	}
 	return append(list, Trigger{re, cmd})
@@ -127,6 +129,14 @@ func AddFunction(name string, f func(*regexp.Regexp, []string)) {
 	functions[name] = f
 }
 
-func Show(text string) {
-	program.Send(text)
+type showText struct {
+	window string
+	text   string
+}
+
+func ShowMain(text string) {
+	Show("main", text)
+}
+func Show(window string, text string) {
+	program.Send(showText{window, text})
 }

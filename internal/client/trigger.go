@@ -37,21 +37,21 @@ var UnaliasCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 }
 
 func showtriggers(t []Trigger, triggerType string) {
-	Show("## Current " + triggerType + ":\n")
+	ShowMain("## Current " + triggerType + ":\n")
 	for i, a := range t {
-		Show(fmt.Sprintf("\n[%d]: %s", i, a.Re.String()))
+		ShowMain(fmt.Sprintf("\n[%d]: %s", i, a.Re.String()))
 	}
-	Show("\n")
+	ShowMain("\n")
 }
 
 func untrigger(triggerList []Trigger, triggerType string, index string) []Trigger {
 	n, err := strconv.Atoi(index)
 	if err != nil {
-		Show(fmt.Sprintf("Invalid %s number: %d\n", triggerType, n))
+		ShowMain(fmt.Sprintf("Invalid %s number: %d\n", triggerType, n))
 		return triggerList
 	}
 	if n >= len(actions) {
-		Show(fmt.Sprintf("%s not found: %d\n", triggerType, n))
+		ShowMain(fmt.Sprintf("%s not found: %d\n", triggerType, n))
 		return triggerList
 	}
 	return append(triggerList[:n], triggerList[n+1:]...)

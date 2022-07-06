@@ -11,7 +11,7 @@ var inMap = false
 // Handle seeing an overhead map line
 func MapLine(re *regexp.Regexp, matches []string) {
 	inMap = true
-	client.Show(client.CurrentRaw)
+	client.ShowMain(client.CurrentRaw)
 	client.Gag = true
 }
 

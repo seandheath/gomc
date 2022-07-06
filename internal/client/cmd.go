@@ -28,11 +28,11 @@ var CaptureCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	s := strings.TrimPrefix(matches[0], "#capture ")
 
 	if s == "overhead" {
-		Show(CurrentRaw)
+		ShowMain(CurrentRaw)
 		Gag = true
 	} else {
 		ts := time.Now().Format("2006:01:02 15:04:05")
-		Show(fmt.Sprintf("[%s] %s", ts, CurrentRaw))
+		ShowMain(fmt.Sprintf("[%s] %s", ts, CurrentRaw))
 	}
 }
 
@@ -41,7 +41,7 @@ var FuncCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	if f, ok := functions[s]; ok { // Found the function
 		f(re, matches)
 	} else {
-		Show("Function not found:" + matches[0] + "\n")
+		ShowMain("Function not found:" + matches[0] + "\n")
 	}
 }
 
@@ -53,7 +53,7 @@ var MatchCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 var LoopCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	n, err := strconv.Atoi(matches[1])
 	if err != nil {
-		Show("Error parsing loop number: " + err.Error() + "\n")
+		ShowMain("Error parsing loop number: " + err.Error() + "\n")
 	}
 	for i := 0; i < n; i++ {
 		Parse(matches[2])
@@ -63,5 +63,5 @@ var LoopCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 var MemStatsCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	Show(fmt.Sprintf("Alloc: %d MiB", m.Alloc/1024/1024))
+	ShowMain(fmt.Sprintf("Alloc: %d MiB", m.Alloc/1024/1024))
 }

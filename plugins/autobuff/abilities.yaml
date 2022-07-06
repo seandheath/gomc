@@ -1,5 +1,9 @@
 ---
 abilities:
+  refined tactics:
+    activation:
+      - 'You refine your tactics'
+    prevention: 'intermediate insight feat'
   archers competence:
     activation:
       - '^You now possess the Archer''s Competence'
@@ -12,10 +16,6 @@ abilities:
     activation:
       - '^You are now using the wind as your ally'
       - '^The wind is already your ally'
-  refined tactics:
-    activation:
-      - 'You refine your tactics'
-    prevention: 'intermediate insight feat'
   acrobatics:
     activation:
       - '^You focus on self-preservation through tumbles and timely dodges'

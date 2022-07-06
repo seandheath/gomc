@@ -19,13 +19,13 @@ var ansiRegexp = regexp.MustCompile(ansi)
 // If the connection is successful then a goroutine is launched to handle the connection.
 var ConnectCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	if Conn != nil {
-		Show("Already connected.\n")
+		ShowMain("Already connected.\n")
 		return
 	}
 	text := matches[1]
 	conn, err := net.Dial("tcp", text)
 	if err != nil {
-		Show("Failed to connect: " + err.Error() + "\n")
+		ShowMain("Failed to connect: " + err.Error() + "\n")
 	}
 	Conn = conn
 	go func() {
@@ -38,7 +38,7 @@ var ConnectCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 			CurrentRaw := scanner.Text()
 			CurrentText := strip(CurrentRaw)
 			CheckTriggers(actions, strings.TrimSuffix(CurrentText, "\n"))
-			Show(CurrentRaw)
+			ShowMain(CurrentRaw)
 		}
 	}()
 }
