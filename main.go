@@ -30,9 +30,9 @@ import (
 )
 
 func main() {
-	client.Run()
 	client.LoadPlugin("nodeka", nodeka.Initialize("plugins/nodeka/nodeka.yaml"))
 	client.LoadPlugin("autobuff", autobuff.Initialize("plugins/autobuff/autobuff.yaml"))
+	client.Run()
 	fmt.Println("Enter any key to exit...")
 	fmt.Scanln()
 	return

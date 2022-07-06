@@ -35,7 +35,6 @@ func init() {
 	aliases = []Trigger{}
 	functions = map[string]TriggerFunc{}
 	plugins = map[string]*PluginConfig{}
-	cmdInit()
 }
 
 // Parse the string and send the result to the server
@@ -65,6 +64,7 @@ func SendNow(text string) {
 }
 
 func Run() {
+	cmdInit()
 	program = tea.NewProgram(
 		initialModel(),
 		tea.WithAltScreen(),
