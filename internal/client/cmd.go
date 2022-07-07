@@ -28,7 +28,7 @@ var CaptureCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
 	s := strings.TrimPrefix(matches[0], "#capture ")
 
 	if s == "overhead" {
-		ShowMain(CurrentRaw)
+		Show("chat", CurrentRaw)
 		Gag = true
 	} else {
 		ts := time.Now().Format("2006:01:02 15:04:05")

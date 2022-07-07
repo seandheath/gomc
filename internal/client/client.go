@@ -11,7 +11,8 @@ import (
 )
 
 var (
-	program     *tea.Program
+	uiProgram   *tea.Program
+	uiModel     *model
 	Conn        net.Conn
 	CurrentRaw  string
 	CurrentText string
@@ -35,6 +36,8 @@ func init() {
 	aliases = []Trigger{}
 	functions = map[string]TriggerFunc{}
 	plugins = map[string]*PluginConfig{}
+	uiModel = initialModel()
+	cmdInit()
 }
 
 // Parse the string and send the result to the server
@@ -64,13 +67,12 @@ func SendNow(text string) {
 }
 
 func Run() {
-	cmdInit()
-	program = tea.NewProgram(
-		initialModel(),
+	uiProgram = tea.NewProgram(
+		uiModel,
 		tea.WithAltScreen(),
 		tea.WithMouseCellMotion(),
 	)
-	if err := program.Start(); err != nil {
+	if err := uiProgram.Start(); err != nil {
 		LogError.Fatal("Error starting program: ", err)
 		os.Exit(1)
 	}
@@ -129,6 +131,19 @@ func AddFunction(name string, f func(*regexp.Regexp, []string)) {
 	functions[name] = f
 }
 
+func AddWindow(name string, width int, height int) {
+	uiModel.AddWindow(name, width, height)
+}
+
+func SetView(f func(ws map[string]*Window) string) error {
+	uiModel.ViewFunc = f
+	return nil
+}
+
+func SetResize(f func(int, int, map[string]*Window) map[string]*Window) {
+	uiModel.ResizeFunc = f
+}
+
 type showText struct {
 	window string
 	text   string
@@ -138,5 +153,5 @@ func ShowMain(text string) {
 	Show("main", text)
 }
 func Show(window string, text string) {
-	program.Send(showText{window, text})
+	uiProgram.Send(showText{window, text})
 }
