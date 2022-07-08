@@ -1,7 +1,5 @@
 ---
 actions:
-  '^[ vi`~!@#$%^&*()-_=+\[\]{};:''",.<>\?|\/\\]{34,37}$': '#func MapLine'
-  '^$': '#func EmptyLine'
   '^.+ says , ''.+': '#capture' 
   '^You say, ''.+': '#capture' 
   '^< (emote|social) >': '#capture'

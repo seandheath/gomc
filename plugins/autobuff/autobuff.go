@@ -3,7 +3,6 @@ package autobuff
 import (
 	"fmt"
 	"os"
-	"regexp"
 
 	"github.com/seandheath/go-mud-client/internal/client"
 	"gopkg.in/yaml.v2"
@@ -30,8 +29,10 @@ type Abilities struct {
 var activations = map[string]string{} // Map of activation strings to ability name
 var activePreventions = map[string]bool{}
 var abilities = map[string]*Ability{} // Map of ability names to ability structs
+var Client *client.Client
 
-func Initialize(file string) *client.PluginConfig {
+func Initialize(c *client.Client, file string) *client.PluginConfig {
+	Client = c
 	cfg, err := client.LoadConfig(file)
 	if err != nil {
 		fmt.Println(err)
@@ -41,7 +42,7 @@ func Initialize(file string) *client.PluginConfig {
 
 	b, err := os.ReadFile("plugins/autobuff/abilities.yaml")
 	if err != nil {
-		client.LogError.Println(err)
+		Client.LogError.Println(err)
 	}
 	ab := Abilities{}
 
@@ -57,18 +58,18 @@ func Initialize(file string) *client.PluginConfig {
 	for name, buff := range abilities {
 		for _, activation := range buff.Activation {
 			activations[activation] = name       // Map the activation string
-			client.AddAction(activation, BuffUp) // Create the action
+			Client.AddAction(activation, BuffUp) // Create the action
 		}
 	}
-	client.AddAction("^You are no longer affected by: (.+)\\.$", BuffDown)
-	client.AddAction("^You cannot perform (.+) abilities again yet", PreventUsed)
-	client.AddAction("^You may again perform (.+) abilities", PreventAvailable)
-	client.AddAlias("^spel$", CheckBuffs)
+	Client.AddAction("^You are no longer affected by: (.+)\\.$", BuffDown)
+	Client.AddAction("^You cannot perform (.+) abilities again yet", PreventUsed)
+	Client.AddAction("^You may again perform (.+) abilities", PreventAvailable)
+	Client.AddAlias("^spel$", CheckBuffs)
 	return Config
 }
 
-var BuffUp client.TriggerFunc = func(re *regexp.Regexp, matches []string) {
-	if name, ok := activations[re.String()]; ok { // Get the buff name from the activation string map
+var BuffUp client.TriggerFunc = func(t *client.TriggerMatch) {
+	if name, ok := activations[t.Trigger.Re.String()]; ok { // Get the buff name from the activation string map
 		if buff, ok := abilities[name]; ok { // Get the buff from our buff list
 			buff.IsActive = true // Set it to active
 			if buff.Prevention != "" {
@@ -79,20 +80,20 @@ var BuffUp client.TriggerFunc = func(re *regexp.Regexp, matches []string) {
 }
 
 // BuffDown handles when a buff drops, preparing it to be cast again.
-var BuffDown client.TriggerFunc = func(re *regexp.Regexp, matches []string) {
-	if buff, ok := abilities[matches[1]]; ok {
+var BuffDown client.TriggerFunc = func(t *client.TriggerMatch) {
+	if buff, ok := abilities[t.Matches[1]]; ok {
 		buff.IsActive = false
 	}
 }
 
-var PreventUsed client.TriggerFunc = func(re *regexp.Regexp, matches []string) {
-	activePreventions[matches[1]] = true
+var PreventUsed client.TriggerFunc = func(t *client.TriggerMatch) {
+	activePreventions[t.Matches[1]] = true
 }
 
-var PreventAvailable client.TriggerFunc = func(re *regexp.Regexp, matches []string) {
-	activePreventions[matches[1]] = false
+var PreventAvailable client.TriggerFunc = func(t *client.TriggerMatch) {
+	activePreventions[t.Matches[1]] = false
 }
-var CheckBuffs client.TriggerFunc = func(re *regexp.Regexp, matches []string) {
+var CheckBuffs client.TriggerFunc = func(t *client.TriggerMatch) {
 	for name, buff := range abilities {
 		if !buff.IsActive && !isPrevented(buff) {
 			DoBuff(name, buff)
@@ -117,8 +118,8 @@ func DoBuff(name string, buff *Ability) {
 	//}
 	//}
 	if buff.Execute == "" {
-		client.Parse(name)
+		Client.Parse(name)
 	} else {
-		client.Parse(buff.Execute)
+		Client.Parse(buff.Execute)
 	}
 }

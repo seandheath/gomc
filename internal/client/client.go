@@ -4,108 +4,86 @@ import (
 	"log"
 	"net"
 	"os"
-	"regexp"
 	"strings"
+
+	"github.com/seandheath/go-mud-client/internal/tui"
 )
 
-var (
-	Conn        net.Conn
-	CurrentRaw  string
-	CurrentText string
-	Gag         bool
-	LogError    *log.Logger
-	LogInfo     *log.Logger
-	actions     []Trigger
-	aliases     []Trigger
-	functions   map[string]TriggerFunc
-	plugins     map[string]*PluginConfig
-)
+type Client struct {
+	Conn      net.Conn
+	Gag       bool
+	RawLine   string
+	TextLine  string
+	LogError  *log.Logger
+	LogInfo   *log.Logger
+	actions   []Trigger
+	aliases   []Trigger
+	functions map[string]TriggerFunc
+	plugins   map[string]*PluginConfig
+	tui       *tui.TUI
+}
 
-func init() {
-	Conn = nil
-	CurrentRaw = ""
-	CurrentText = ""
-	Gag = false
-	LogError = log.New(os.Stderr, "Error: ", log.Ldate|log.Ltime|log.Lshortfile)
-	LogInfo = log.New(os.Stderr, "Info: ", log.Ldate|log.Ltime|log.Lshortfile)
-	actions = []Trigger{}
-	aliases = []Trigger{}
-	functions = map[string]TriggerFunc{}
-	plugins = map[string]*PluginConfig{}
-	cmdInit()
-	uiInit()
+func NewClient() *Client {
+	c := &Client{}
+	c.Conn = nil
+	c.Gag = false
+	c.RawLine = "raw"
+	c.TextLine = "text"
+	c.LogError = log.New(os.Stderr, "Error: ", log.Ldate|log.Ltime|log.Lshortfile)
+	c.LogInfo = log.New(os.Stderr, "Info: ", log.Ldate|log.Ltime|log.Lshortfile)
+	c.actions = []Trigger{}
+	c.aliases = []Trigger{}
+	c.functions = map[string]TriggerFunc{}
+	c.plugins = map[string]*PluginConfig{}
+	c.tui = tui.NewTUI()
+	c.tui.Parse = c.Parse
+	c.cmdInit()
+	return c
+}
+
+func (c *Client) AddAction(rs string, cmd TriggerFunc) { c.actions = c.addTrigger(c.actions, rs, cmd) }
+func (c *Client) AddActionString(rs string, cmd string) {
+	c.actions = c.addTriggerString(c.actions, rs, cmd)
+}
+func (c *Client) AddAlias(rs string, cmd TriggerFunc) { c.aliases = c.addTrigger(c.aliases, rs, cmd) }
+func (c *Client) AddAliasString(rs string, cmd string) {
+	c.aliases = c.addTriggerString(c.aliases, rs, cmd)
 }
 
 // Parse the string and send the result to the server
-func Parse(text string) {
-	if CheckTriggers(aliases, text) { // Check for aliases / commands
+func (c *Client) Parse(text string) {
+	if c.CheckTriggers(c.aliases, text) { // Check for aliases / commands
 		return
-	} else if Conn == nil { // Not connected yet
-		ShowMain("Not connected.\n")
+	} else if c.Conn == nil { // Not connected yet
+		c.ShowMain("Not connected.\n")
 		return
 	} else if strings.Contains(text, ";") { // Allow splitting commands by ;
 		s := strings.Split(text, ";")
 		for _, t := range s {
-			Parse(t)
+			c.Parse(t)
 		}
 	} else {
-		SendNow(text)
+		c.SendNow(text)
 	}
 }
 
-func SendNow(text string) {
-	ShowMain(text + "\n")
-	_, err := Conn.Write([]byte(text + "\n"))
+func (c *Client) SendNow(text string) {
+	c.ShowMain(text + "\n")
+	_, err := c.Conn.Write([]byte(text + "\n"))
 	if err != nil {
-		ShowMain("Error sending: " + err.Error() + "\n")
-		Conn = nil
+		c.ShowMain("Error sending: " + err.Error() + "\n")
+		c.Conn = nil
 	}
 }
 
-func Run() {
-	if err := app.SetRoot(grid, true).SetFocus(input).Run(); err != nil {
-		LogError.Println(err)
-	}
-}
-
-func AddAction(rs string, cmd TriggerFunc)  { actions = addTrigger(actions, rs, cmd) }
-func AddActionString(rs string, cmd string) { actions = addTriggerString(actions, rs, cmd) }
-func AddAlias(rs string, cmd TriggerFunc)   { aliases = addTrigger(aliases, rs, cmd) }
-func AddAliasString(rs string, cmd string)  { aliases = addTriggerString(aliases, rs, cmd) }
-
-func addTriggerString(list []Trigger, rs string, cmd string) []Trigger {
-	f := func(*regexp.Regexp, []string) {
-		Parse(cmd)
-	}
-	return addTrigger(list, rs, f)
-}
-
-// This function adds a trigger to the provided list and returns it
-func addTrigger(list []Trigger, rs string, cmd TriggerFunc) []Trigger {
-	re, err := regexp.Compile(rs)
-	if err != nil {
-		ShowMain("Error compiling trigger: " + err.Error() + "\n")
-		return list
-	}
-	return append(list, Trigger{re, cmd})
-}
-
-func CheckTriggers(list []Trigger, text string) bool {
-	matched := false
-	for _, t := range list {
-		m := t.Re.FindStringSubmatch(text)
-		if len(m) > 0 {
-			matched = true
-			t.Cmd(t.Re, m)
-		}
-	}
-	return matched
+func (c *Client) Run() {
+	c.tui.Run()
 }
 
 // AddFunction maps a string to a function so that you can call the function
 // from the mud with #function <name>
-func AddFunction(name string, f func(*regexp.Regexp, []string)) {
-	functions[name] = f
+func (c *Client) AddFunction(name string, f func(t *TriggerMatch)) {
+	c.functions[name] = f
 }
 
 type showText struct {
@@ -113,6 +91,10 @@ type showText struct {
 	text   string
 }
 
-func ShowMain(text string) {
-	Show("main", text)
+func (c *Client) ShowMain(text string) {
+	c.Show("main", text)
+}
+
+func (c *Client) Show(window string, text string) {
+	c.tui.Show(window, text)
 }

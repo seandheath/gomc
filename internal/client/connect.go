@@ -17,28 +17,32 @@ var ansiRegexp = regexp.MustCompile(ansi)
 
 // ConnectCmd takes a string from the user and attempts to ConnectCmd to the mud server.
 // If the connection is successful then a goroutine is launched to handle the connection.
-var ConnectCmd TriggerFunc = func(re *regexp.Regexp, matches []string) {
-	if Conn != nil {
-		ShowMain("Already connected.\n")
+func (c *Client) ConnectCmd(t *TriggerMatch) {
+	if c.Conn != nil {
+		c.ShowMain("Already connected.\n")
 		return
 	}
-	text := matches[1]
+	text := t.Matches[1]
 	conn, err := net.Dial("tcp", text)
 	if err != nil {
-		ShowMain("Failed to connect: " + err.Error() + "\n")
+		c.ShowMain("Failed to connect: " + err.Error() + "\n")
 	}
-	Conn = conn
+	c.Conn = conn
 	go func() {
-		defer Conn.Close()
-		buffer := make([]byte, bufio.MaxScanTokenSize)
-		scanner := bufio.NewScanner(Conn)
+		defer c.Conn.Close()
+		//buffer := make([]byte, bufio.MaxScanTokenSize)
+		scanner := bufio.NewScanner(c.Conn)
 		scanner.Split(split)
-		scanner.Buffer(buffer, bufio.MaxScanTokenSize)
+		//scanner.Buffer(buffer, bufio.MaxScanTokenSize)
 		for scanner.Scan() {
-			CurrentRaw := scanner.Text()
-			CurrentText := strip(CurrentRaw)
-			CheckTriggers(actions, strings.TrimSuffix(CurrentText, "\n"))
-			ShowMain(CurrentRaw)
+			c.RawLine = scanner.Text()
+			c.TextLine = strip(c.RawLine)
+			c.CheckTriggers(c.actions, strings.TrimSuffix(c.TextLine, "\n"))
+			if !c.Gag {
+				c.ShowMain(c.RawLine)
+			} else {
+				c.Gag = false
+			}
 		}
 	}()
 }
@@ -52,7 +56,7 @@ func split(data []byte, atEOF bool) (advance int, token []byte, err error) {
 			lastRead = time.Now()
 			return i + 1, data[0:i], nil
 		}
-		if timeout := lastRead.Add(time.Millisecond * 100); timeout.After(time.Now()) {
+		if timeout := lastRead.Add(time.Microsecond * 100); timeout.After(time.Now()) {
 			lastRead = time.Now()
 			return len(data), data, nil
 		}

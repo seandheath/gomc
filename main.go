@@ -25,12 +25,15 @@ import (
 	"fmt"
 
 	"github.com/seandheath/go-mud-client/internal/client"
+	"github.com/seandheath/go-mud-client/plugins/autobuff"
+	"github.com/seandheath/go-mud-client/plugins/nodeka"
 )
 
 func main() {
-	//client.LoadPlugin("nodeka", nodeka.Initialize("plugins/nodeka/nodeka.yaml"))
-	//client.LoadPlugin("autobuff", autobuff.Initialize("plugins/autobuff/autobuff.yaml"))
-	client.Run()
+	c := client.NewClient()
+	c.LoadPlugin("nodeka", nodeka.Initialize(c, "plugins/nodeka/nodeka.yaml"))
+	c.LoadPlugin("autobuff", autobuff.Initialize(c, "plugins/autobuff/autobuff.yaml"))
+	c.Run()
 	fmt.Println("Enter any key to exit...")
 	fmt.Scanln()
 	return
