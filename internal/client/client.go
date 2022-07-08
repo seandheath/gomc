@@ -6,13 +6,9 @@ import (
 	"os"
 	"regexp"
 	"strings"
-
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 var (
-	uiProgram   *tea.Program
-	uiModel     *model
 	Conn        net.Conn
 	CurrentRaw  string
 	CurrentText string
@@ -36,8 +32,8 @@ func init() {
 	aliases = []Trigger{}
 	functions = map[string]TriggerFunc{}
 	plugins = map[string]*PluginConfig{}
-	uiModel = initialModel()
 	cmdInit()
+	uiInit()
 }
 
 // Parse the string and send the result to the server
@@ -67,14 +63,8 @@ func SendNow(text string) {
 }
 
 func Run() {
-	uiProgram = tea.NewProgram(
-		uiModel,
-		tea.WithAltScreen(),
-		tea.WithMouseCellMotion(),
-	)
-	if err := uiProgram.Start(); err != nil {
-		LogError.Fatal("Error starting program: ", err)
-		os.Exit(1)
+	if err := app.SetRoot(grid, true).SetFocus(input).Run(); err != nil {
+		LogError.Println(err)
 	}
 }
 
@@ -112,36 +102,10 @@ func CheckTriggers(list []Trigger, text string) bool {
 	return matched
 }
 
-func LoadPlugin(name string, p *PluginConfig) {
-	for re, cmd := range p.Actions {
-		AddActionString(re, cmd)
-	}
-	for re, cmd := range p.Aliases {
-		AddAliasString(re, cmd)
-	}
-	for n, f := range p.Functions {
-		AddFunction(n, f)
-	}
-	plugins[name] = p
-}
-
 // AddFunction maps a string to a function so that you can call the function
 // from the mud with #function <name>
 func AddFunction(name string, f func(*regexp.Regexp, []string)) {
 	functions[name] = f
-}
-
-func AddWindow(name string, width int, height int) {
-	uiModel.AddWindow(name, width, height)
-}
-
-func SetView(f func(ws map[string]*Window) string) error {
-	uiModel.ViewFunc = f
-	return nil
-}
-
-func SetResize(f func(int, int, map[string]*Window) map[string]*Window) {
-	uiModel.ResizeFunc = f
 }
 
 type showText struct {
@@ -151,7 +115,4 @@ type showText struct {
 
 func ShowMain(text string) {
 	Show("main", text)
-}
-func Show(window string, text string) {
-	uiProgram.Send(showText{window, text})
 }

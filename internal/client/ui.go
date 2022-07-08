@@ -1,177 +1,128 @@
 package client
 
 import (
-	"fmt"
+	"io"
 
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 )
 
-// Window represents a new window in the client. The window must
-// provide the height, width, and X, Y coordinates of the top left corner.
-// A value of 0 for X and Y indicates the top left corner.
-// A value of 0 on Width or Height represents the full width or height of the terminal.
-
-type Window struct {
-	Content string
-	Vp      *viewport.Model
+type window struct {
+	*tview.TextView
+	writer io.Writer
 }
-type model struct {
-	input        textinput.Model
-	win          map[string]*Window
+
+var (
+	app          *tview.Application
+	grid         *tview.Grid
+	windows      map[string]*window
+	input        *tview.InputField
 	inputHistory []string
-	inputIndex   int
-	ViewFunc     func(map[string]*Window) string
-	ResizeFunc   func(int, int, map[string]*Window) map[string]*Window
-}
+	historyIndex int
+)
 
-// AddWindow adds a window as specified by the configuration file
-// You must provide a new View() function for Bubbletea
-func (m *model) AddWindow(name string, width int, height int) error {
-	v := viewport.New(width, height)
-	m.win[name] = &Window{
-		Content: "",
-		Vp:      &v,
-	}
-	return nil
-}
-
-func initialModel() *model {
-	m := &model{}
-
-	ti := textinput.New()
-	ti.CursorStyle.Blink(false)
-	ti.Focus()
-
-	m.input = ti
-	m.ViewFunc = DefaultView
-	m.ResizeFunc = DefaultResize
-
-	m.win = map[string]*Window{}
-
-	return m
-}
-
-func newKeyMap() viewport.KeyMap {
-	return viewport.KeyMap{
-		PageDown: key.NewBinding(
-			key.WithKeys("pgdown"),
-		),
-		PageUp: key.NewBinding(
-			key.WithKeys("pgup"),
-			key.WithHelp("pgup", "page up"),
-		),
-		HalfPageUp: key.NewBinding(
-			key.WithKeys("ctrl+k"),
-			key.WithHelp("ctrl+k", "½ page up"),
-		),
-		HalfPageDown: key.NewBinding(
-			key.WithKeys("ctrl+j"),
-			key.WithHelp("ctrl+j", "½ page down"),
-		),
-		Up: key.NewBinding(
-			key.WithKeys("ctrl+up"),
-			key.WithHelp("ctrl+↑", "up"),
-		),
-		Down: key.NewBinding(
-			key.WithKeys("ctrl+down", "j"),
-			key.WithHelp("ctrl+↓", "down"),
-		),
-	}
-}
-
-func (m *model) Init() tea.Cmd { return nil }
-
-//func UpdateWindow(w *viewport.Model, msg tea.Msg) tea.Cmd {
-//model, cmd := w.Update(msg)
-//w = &model
-//return cmd
-//}
-func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-
-	var cmd tea.Cmd
-	var cmds []tea.Cmd
-
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEnter:
-			val := m.input.Value()
-			if val == "" && len(m.inputHistory) > 0 {
-				val = m.inputHistory[len(m.inputHistory)-1]
-			} else {
-				m.inputHistory = append(m.inputHistory, val)
-			}
-			m.inputIndex = len(m.inputHistory)
-			go Parse(val)
-			m.input.SetValue("")
-		case tea.KeyUp:
-			if m.inputIndex > 0 {
-				m.inputIndex -= 1
-				m.input.SetValue(m.inputHistory[m.inputIndex])
-			}
-		case tea.KeyDown:
-			if m.inputIndex < len(m.inputHistory)-1 {
-				m.inputIndex += 1
-				m.input.SetValue(m.inputHistory[m.inputIndex])
-			} else {
-				m.input.SetValue("")
-				m.inputIndex = len(m.inputHistory)
-			}
-		case tea.KeyCtrlC:
-			return m, tea.Quit
-		case tea.KeyEsc:
-			m.win["main"].Vp.GotoBottom()
-		}
-	case tea.WindowSizeMsg:
-		inputHeight := lipgloss.Height(m.input.View())
-		m.win = m.ResizeFunc(msg.Width, msg.Height-inputHeight, m.win)
-	case showText:
-		if w, ok := m.win[msg.window]; ok {
-			ab := w.Vp.AtBottom()
-			w.Content += msg.text
-			w.Vp.SetContent(w.Content)
-			if ab {
-				w.Vp.GotoBottom()
-			}
-		} else {
-			go ShowMain(fmt.Sprintf("\nUnable to show text [%s] in window [%s], window not found.\n", msg.text, msg.window))
-		}
-	}
-
-	v, cmd := m.win["main"].Vp.Update(msg)
-	m.win["main"].Vp = &v
-	cmds = append(cmds, cmd)
-	m.input, cmd = m.input.Update(msg)
-	cmds = append(cmds, cmd)
-	return m, tea.Batch(cmds...)
-}
-
-func (m *model) View() string {
-	s := fmt.Sprintf("%s\n%s", m.ViewFunc(m.win), m.input.View())
-	return s
-}
-
-func DefaultResize(width int, height int, ws map[string]*Window) map[string]*Window {
-	if w, ok := ws["main"]; ok {
-		w.Vp.Width = width
-		w.Vp.Height = height
-		w.Vp.GotoBottom()
+func AddWindow(name string, win Window) {
+	var w *window
+	if cw, ok := windows[name]; ok {
+		w = cw
+		grid.RemoveItem(cw)
 	} else {
-		v := viewport.New(width, height)
-		ws["main"] = &Window{"", &v}
-		ws["main"].Vp.KeyMap = newKeyMap()
-		ws["main"].Vp.YPosition = 0 // TOP
-		ws["main"].Vp.SetContent(ws["main"].Content)
-		ws["main"].Vp.HighPerformanceRendering = false
-		ws["main"].Vp.GotoBottom()
+		nw := tview.NewTextView()
+		nw.SetBorder(win.Border)
+		nw.SetScrollable(win.Scrollable)
+		nw.SetMaxLines(win.MaxLines)
+		nw.SetDynamicColors(true)
+		wr := tview.ANSIWriter(nw)
+		w = &window{nw, wr}
+		windows[name] = w
 	}
-	return ws
+	grid.AddItem(w,
+		win.Row,
+		win.Col,
+		win.RowSpan,
+		win.ColSpan,
+		win.MinGridHeight,
+		win.MinGridWidth,
+		false,
+	)
 }
 
-func DefaultView(ws map[string]*Window) string {
-	return fmt.Sprintf("%s", ws["main"].Vp.View())
+var defaultMainWindow = Window{
+	Row:           0,
+	Col:           0,
+	RowSpan:       1,
+	ColSpan:       1,
+	MinGridHeight: 0,
+	MinGridWidth:  0,
+	Border:        false,
+	Scrollable:    true,
+	MaxLines:      100000,
+}
+
+func uiInit() {
+	windows = make(map[string]*window)
+	grid = tview.NewGrid()
+
+	input = tview.NewInputField().
+		SetDoneFunc(handleInput).
+		SetFieldBackgroundColor(tcell.ColorBlack)
+
+		// Default view just main window and input bar
+	AddWindow("main", defaultMainWindow)
+	grid.AddItem(input, 1, 0, 1, 1, 0, 0, true).
+		SetRows(0, 1)
+
+	app = tview.NewApplication().
+		EnableMouse(true).
+		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			switch event.Key() {
+			case tcell.KeyESC:
+				windows["main"].ScrollToEnd()
+			case tcell.KeyPgUp:
+				app.SetFocus(windows["main"])
+			case tcell.KeyPgDn:
+				app.SetFocus(windows["main"])
+			case tcell.KeyUp:
+				if len(inputHistory) > 0 {
+					historyIndex += 1
+					if historyIndex > len(inputHistory) {
+						historyIndex = len(inputHistory)
+					}
+					input.SetText(inputHistory[len(inputHistory)-historyIndex])
+				}
+			case tcell.KeyDown:
+				historyIndex -= 1
+				if historyIndex <= 0 {
+					historyIndex = 0
+					input.SetText("")
+				} else {
+					input.SetText(inputHistory[len(inputHistory)-historyIndex])
+				}
+			default:
+				app.SetFocus(input)
+			}
+			return event
+		})
+}
+
+func handleInput(key tcell.Key) {
+	text := input.GetText()
+	switch key {
+	case tcell.KeyEnter:
+		historyIndex = 0
+		if text == "" {
+			// Redo the last command
+			text = inputHistory[len(inputHistory)-1]
+		}
+		Parse(text)
+		input.SetText("")
+		inputHistory = append(inputHistory, text)
+	}
+}
+
+func Show(name string, text string) {
+	_, err := windows[name].writer.Write([]byte(text))
+	if err != nil {
+		LogError.Println(err.Error())
+	}
 }

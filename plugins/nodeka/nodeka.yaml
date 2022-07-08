@@ -10,3 +10,43 @@ actions:
 aliases:
   '^nodeka': '#connect nodeka.com:9210'
   '^cl$': 'clear'
+
+windows:
+  chat:
+    row: 0
+    col: 0
+    rowspan: 1
+    colspan: 2
+    border: true
+    scrollable: true
+  main:
+    row: 1
+    col: 0
+    rowspan: 2
+    colspan: 1
+    scrollable: true
+    maxlines: 100000
+  status:
+    row: 1
+    col: 1
+    rowspan: 1
+    colspan: 1
+    border: true
+    scrollable: false
+  omap:
+    row: 2
+    col: 1
+    rowspan: 1
+    colspan: 1
+    border: true
+    scrollable: false
+    maxlines: 16
+
+grid:
+  columns:
+    - 0 # chat / main
+    - 38 # chat / status / omap
+  rows: 
+    - 15 # chat
+    - 0  # main / status
+    - 18 # main / omap
