@@ -17,17 +17,10 @@ type Coordinates struct {
 	Z int
 }
 
-type Exit struct {
-	Direction Direction
-	Room      *Room
-	Door      string
-	Locked    bool
-}
-
 type Room struct {
 	ID          int // Unique ID
 	Name        string
-	Exits       []Exit
+	Exits       map[Direction]*Room
 	Area        *Area
 	Coordinates Coordinates
 	Flags       []string

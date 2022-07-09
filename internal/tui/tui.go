@@ -3,7 +3,6 @@ package tui
 import (
 	"io"
 	"log"
-	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -100,13 +99,6 @@ func NewTUI() *TUI {
 	tui.grid.AddItem(tui.input, 1, 0, 1, 1, 0, 0, true).
 		SetRows(0, 1)
 
-	go func() {
-		// Refresh every millisecond
-		for {
-			time.Sleep(time.Millisecond * 1)
-			tui.app.Draw()
-		}
-	}()
 	return tui
 }
 
@@ -121,6 +113,9 @@ func (tui *TUI) AddWindow(name string, win Window) {
 		nw.SetScrollable(win.Scrollable)
 		nw.SetMaxLines(win.MaxLines)
 		nw.SetDynamicColors(true)
+		nw.SetChangedFunc(func() {
+			tui.app.Draw()
+		})
 		wr := tview.ANSIWriter(nw)
 		w = &window{nw, wr}
 		tui.windows[name] = w

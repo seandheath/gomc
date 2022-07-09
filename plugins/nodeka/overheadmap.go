@@ -8,7 +8,7 @@ var inMap = false
 
 func initOmap() {
 	Client.AddAction("^[ vi`~!@#$%^&*()-_=+\\[\\]{};:''\",.<>\\?|\\/]{34,37}$", MapLine)
-	//Client.AddAction("^$", EmptyLine)
+	Client.AddAction("^$", EmptyLine)
 }
 
 // Handle seeing an overhead map line

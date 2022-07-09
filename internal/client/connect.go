@@ -30,10 +30,8 @@ func (c *Client) ConnectCmd(t *TriggerMatch) {
 	c.Conn = conn
 	go func() {
 		defer c.Conn.Close()
-		//buffer := make([]byte, bufio.MaxScanTokenSize)
 		scanner := bufio.NewScanner(c.Conn)
 		scanner.Split(split)
-		//scanner.Buffer(buffer, bufio.MaxScanTokenSize)
 		for scanner.Scan() {
 			c.RawLine = scanner.Text()
 			c.TextLine = strip(c.RawLine)
@@ -56,7 +54,7 @@ func split(data []byte, atEOF bool) (advance int, token []byte, err error) {
 			lastRead = time.Now()
 			return i + 1, data[0:i], nil
 		}
-		if timeout := lastRead.Add(time.Microsecond * 100); timeout.After(time.Now()) {
+		if timeout := lastRead.Add(time.Millisecond * 100); timeout.After(time.Now()) {
 			lastRead = time.Now()
 			return len(data), data, nil
 		}
