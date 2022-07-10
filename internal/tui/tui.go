@@ -55,6 +55,7 @@ func NewTUI() *TUI {
 	tui.input = tview.NewInputField().
 		SetDoneFunc(tui.handleInput).
 		SetFieldBackgroundColor(tcell.ColorBlack)
+	tui.inputHistory = []string{""}
 
 	tui.app = tview.NewApplication().
 		EnableMouse(true).
@@ -88,7 +89,6 @@ func NewTUI() *TUI {
 				if tui.inputHighlighted {
 					tui.inputHighlighted = false
 					tui.input.SetText("")
-					tui.input.SetBackgroundColor(tcell.ColorBlack)
 				}
 				tui.app.SetFocus(tui.input)
 			}
@@ -136,10 +136,11 @@ func (t *TUI) handleInput(key tcell.Key) {
 	switch key {
 	case tcell.KeyEnter:
 		t.historyIndex = 0
-		t.Parse(text)
+		go t.Parse(text)
 		t.inputHighlighted = true
-		t.input.SetBackgroundColor(tcell.ColorLightBlue)
-		t.inputHistory = append(t.inputHistory, text)
+		if t.inputHistory[len(t.inputHistory)-1] != text {
+			t.inputHistory = append(t.inputHistory, text)
+		}
 	}
 }
 

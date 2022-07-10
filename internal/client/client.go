@@ -9,8 +9,11 @@ import (
 	"github.com/seandheath/go-mud-client/internal/tui"
 )
 
+const BUFFERSIZE = 1024 * 64
+
 type Client struct {
-	Conn      net.Conn
+	conn      net.Conn
+	buffer    []byte
 	Gag       bool
 	RawLine   string
 	TextLine  string
@@ -25,7 +28,8 @@ type Client struct {
 
 func NewClient() *Client {
 	c := &Client{}
-	c.Conn = nil
+	c.conn = nil
+	c.buffer = make([]byte, BUFFERSIZE)
 	c.Gag = false
 	c.RawLine = "raw"
 	c.TextLine = "text"
@@ -54,7 +58,7 @@ func (c *Client) AddAliasString(rs string, cmd string) {
 func (c *Client) Parse(text string) {
 	if c.CheckTriggers(c.aliases, text) { // Check for aliases / commands
 		return
-	} else if c.Conn == nil { // Not connected yet
+	} else if c.conn == nil { // Not connected yet
 		c.ShowMain("Not connected.\n")
 		return
 	} else if strings.Contains(text, ";") { // Allow splitting commands by ;
@@ -69,10 +73,10 @@ func (c *Client) Parse(text string) {
 
 func (c *Client) SendNow(text string) {
 	c.ShowMain(text + "\n")
-	_, err := c.Conn.Write([]byte(text + "\n"))
+	_, err := c.conn.Write([]byte(text + "\n"))
 	if err != nil {
 		c.ShowMain("Error sending: " + err.Error() + "\n")
-		c.Conn = nil
+		c.conn = nil
 	}
 }
 

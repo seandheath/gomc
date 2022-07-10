@@ -2,14 +2,17 @@ package client
 
 import (
 	"bufio"
-	"bytes"
+	"errors"
 	"net"
+	"os"
 	"regexp"
 	"strings"
 	"time"
 )
 
-var lastRead time.Time = time.Now()
+const (
+	DEADLINE = time.Millisecond * 1
+)
 
 const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
 
@@ -18,7 +21,7 @@ var ansiRegexp = regexp.MustCompile(ansi)
 // ConnectCmd takes a string from the user and attempts to ConnectCmd to the mud server.
 // If the connection is successful then a goroutine is launched to handle the connection.
 func (c *Client) ConnectCmd(t *TriggerMatch) {
-	if c.Conn != nil {
+	if c.conn != nil {
 		c.ShowMain("Already connected.\n")
 		return
 	}
@@ -27,40 +30,92 @@ func (c *Client) ConnectCmd(t *TriggerMatch) {
 	if err != nil {
 		c.ShowMain("Failed to connect: " + err.Error() + "\n")
 	}
-	c.Conn = conn
+	c.conn = conn
+	s := bufio.NewScanner(c.conn)
+	s.Split(bufio.ScanLines)
 	go func() {
-		defer c.Conn.Close()
-		scanner := bufio.NewScanner(c.Conn)
-		scanner.Split(split)
-		for scanner.Scan() {
-			c.RawLine = scanner.Text()
-			c.TextLine = strip(c.RawLine)
-			c.CheckTriggers(c.actions, strings.TrimSuffix(c.TextLine, "\n"))
-			if !c.Gag {
-				c.ShowMain(c.RawLine)
+		defer c.conn.Close()
+		newData := false
+		newLine := ""
+		last := ""
+		for {
+			lines, err := c.readLines(last)
+			last = ""
+			if errors.Is(err, os.ErrDeadlineExceeded) {
+				// Deadline exceeded, we have all the data
+				// Reset the deadline
+				c.conn.SetReadDeadline(time.Time{})
+				newData = false
+			} else if err != nil {
+				// Some other connection error
+				c.conn = nil
+				c.ShowMain("Disconnected: " + err.Error())
+				return
 			} else {
-				c.Gag = false
+				// New data and deadline not exceeded
+				newData = true
+			}
+
+			// We have lines
+			if lines != nil {
+				// We got new data, no timeout yet, and we don't know if it's all the data
+				// We'll check the last string for a newline and pass it back to readlines to
+				// prepend the next round of data
+				if newData && !strings.HasSuffix(lines[len(lines)-1], "\n") {
+					last = lines[len(lines)-1]
+					lines = lines[:len(lines)-1]
+				}
+
+				// Reset our new line to print and handle all the lines
+				newLine = ""
+				for _, line := range lines {
+					newLine += c.handleLine(line)
+				}
+				if newLine != "" {
+					c.ShowMain(newLine)
+				}
+			}
+
+			// We got data, set deadline and read again
+			if newData {
+				c.conn.SetReadDeadline(time.Now().Add(DEADLINE))
 			}
 		}
 	}()
 }
 
+func (c *Client) handleLine(line string) string {
+	c.RawLine = line
+	c.TextLine = strip(c.RawLine)
+	c.CheckTriggers(c.actions, strings.TrimSuffix(c.TextLine, "\n"))
+	if c.Gag {
+		c.Gag = false
+		return ""
+	}
+	return c.RawLine
+}
+func (c *Client) readLines(last string) ([]string, error) {
+
+	n, err := c.conn.Read(c.buffer)
+
+	// If something goes wrong kick it back
+	if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
+		return nil, err
+	}
+	lines := strings.Split(string(c.buffer[:n]), "\r")
+	lines[0] = last + lines[0]
+
+	// No data
+	return lines, err
+}
+
+var timeout time.Time
+
 func split(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	if atEOF && len(data) == 0 {
-		return 0, nil, nil
-	}
-	if len(data) > 0 {
-		if i := bytes.IndexByte(data, '\r'); i >= 0 {
-			lastRead = time.Now()
-			return i + 1, data[0:i], nil
+	for i := 0; i < len(data); i++ {
+		if data[i] == '\r' {
+			return i + 1, data[:i], nil
 		}
-		if timeout := lastRead.Add(time.Millisecond * 100); timeout.After(time.Now()) {
-			lastRead = time.Now()
-			return len(data), data, nil
-		}
-	}
-	if atEOF {
-		return len(data), data, nil
 	}
 	return 0, nil, nil
 }
