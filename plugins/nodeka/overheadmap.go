@@ -1,39 +1,42 @@
 package nodeka
 
 import (
+	"strings"
+
 	"github.com/seandheath/go-mud-client/internal/client"
 )
 
-var inMap = false
-
 func initOmap() {
 	Client.AddAction("^[ vi`~!@#$%^&*()-_=+\\[\\]{};:''\",.<>\\?|\\/]{34,37}$", MapLine)
-	Client.AddAction("^ {36}$", SpaceLine)
 	Client.AddAction("^$", EmptyLine)
 }
 
-// Handle seeing an overhead map line
+var inMap = false
 var lineCount = 0
+var mapLine = ""
 
 func MapLine(t *client.TriggerMatch) {
 	inMap = true
-	Client.Show("omap", Client.RawLine)
-	lineCount += 1
+	if lineCount > 14 {
+		// Final empty line
+		if t.Matches[0] == "                                    " {
+			lineCount = 0
+			Client.Show("omap", strings.TrimSuffix(mapLine, "\n"))
+		} else {
+			// something went wrong, mangled line?
+			lineCount = 0
+			mapLine = ""
+		}
+	} else {
+		lineCount += 1
+		mapLine += Client.RawLine
+	}
 	Client.Gag = true
 }
 
-// Handle seeing an empty line
 func EmptyLine(t *client.TriggerMatch) {
 	if inMap {
 		inMap = false
 		Client.Gag = true
-	}
-}
-
-func SpaceLine(t *client.TriggerMatch) {
-	// End of map
-	if lineCount == 16 {
-		Client.Gag = true
-		lineCount = 0
 	}
 }

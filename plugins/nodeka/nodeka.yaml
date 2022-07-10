@@ -38,7 +38,7 @@ windows:
     colspan: 1
     border: true
     scrollable: false
-    maxlines: 16
+    maxlines: 17
 
 grid:
   columns:
@@ -47,4 +47,4 @@ grid:
   rows: 
     - 15 # chat
     - 0  # main / status
-    - 18 # main / omap
+    - 17 # main / omap
