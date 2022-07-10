@@ -23,13 +23,13 @@ windows:
     rowspan: 2
     colspan: 1
     scrollable: true
-    maxlines: 1000
   status:
     row: 1
     col: 1
     rowspan: 1
     colspan: 1
     border: false
+    maxlines: 100
     scrollable: false
   omap:
     row: 2

@@ -106,25 +106,25 @@ func NewTUI() *TUI {
 	return tui
 }
 
-func (tui *TUI) AddWindow(name string, win Window) {
+func (t *TUI) AddWindow(name string, win Window) {
 	var w *window
-	if cw, ok := tui.windows[name]; ok {
+	if cw, ok := t.windows[name]; ok {
 		w = cw
-		tui.grid.RemoveItem(cw)
+		t.grid.RemoveItem(cw)
 	} else {
 		nw := tview.NewTextView()
 		nw.SetBorder(win.Border)
 		nw.SetScrollable(win.Scrollable)
 		nw.SetMaxLines(win.MaxLines)
 		nw.SetDynamicColors(true)
-		//nw.SetChangedFunc(func() {
-		//tui.dataReady = true
-		//})
+		nw.SetChangedFunc(func() {
+			t.app.Draw()
+		})
 		wr := tview.ANSIWriter(nw)
 		w = &window{nw, wr}
-		tui.windows[name] = w
+		t.windows[name] = w
 	}
-	tui.grid.AddItem(w,
+	t.grid.AddItem(w,
 		win.Row,
 		win.Col,
 		win.RowSpan,
@@ -176,16 +176,6 @@ func (t *TUI) FixInputLine(rows []int, cols []int) {
 }
 
 func (t *TUI) Run() {
-	// Refresh every 10ms
-	go func() {
-		for {
-			if t.dataReady {
-				t.dataReady = false
-				t.app.Draw()
-			}
-			time.Sleep(time.Millisecond * 20)
-		}
-	}()
 	if err := t.app.SetRoot(t.grid, true).SetFocus(t.input).Run(); err != nil {
 		log.Fatal(err)
 	}
