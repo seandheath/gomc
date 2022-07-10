@@ -19,6 +19,7 @@ func MapLine(t *client.TriggerMatch) {
 	inMap = true
 	if lineCount > 14 {
 		// Final empty line
+		// TODO fix for extended map
 		if t.Matches[0] == "                                    " {
 			lineCount = 0
 			Client.Show("omap", strings.TrimSuffix(mapLine, "\n"))
