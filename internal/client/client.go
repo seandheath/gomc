@@ -9,7 +9,7 @@ import (
 	"github.com/seandheath/go-mud-client/internal/tui"
 )
 
-const BUFFERSIZE = 1024 * 64
+const BUFFERSIZE = 1024
 
 type Client struct {
 	conn      net.Conn

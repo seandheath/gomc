@@ -3,10 +3,13 @@ package tui
 import (
 	"io"
 	"log"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
+
+const SLEEP_INTERVAL = time.Millisecond * 10
 
 type window struct {
 	*tview.TextView
@@ -21,6 +24,7 @@ type TUI struct {
 	inputHistory     []string
 	inputHighlighted bool
 	historyIndex     int
+	dataReady        bool
 	Parse            func(string)
 }
 
@@ -113,9 +117,9 @@ func (tui *TUI) AddWindow(name string, win Window) {
 		nw.SetScrollable(win.Scrollable)
 		nw.SetMaxLines(win.MaxLines)
 		nw.SetDynamicColors(true)
-		nw.SetChangedFunc(func() {
-			tui.app.Draw()
-		})
+		//nw.SetChangedFunc(func() {
+		//tui.dataReady = true
+		//})
 		wr := tview.ANSIWriter(nw)
 		w = &window{nw, wr}
 		tui.windows[name] = w
@@ -145,6 +149,7 @@ func (t *TUI) handleInput(key tcell.Key) {
 }
 
 func (t *TUI) Show(name string, text string) {
+	t.dataReady = true
 	t.windows[name].writer.Write([]byte(text))
 }
 
@@ -171,6 +176,16 @@ func (t *TUI) FixInputLine(rows []int, cols []int) {
 }
 
 func (t *TUI) Run() {
+	// Refresh every 10ms
+	go func() {
+		for {
+			if t.dataReady {
+				t.dataReady = false
+				t.app.Draw()
+			}
+			time.Sleep(time.Millisecond * 20)
+		}
+	}()
 	if err := t.app.SetRoot(t.grid, true).SetFocus(t.input).Run(); err != nil {
 		log.Fatal(err)
 	}
