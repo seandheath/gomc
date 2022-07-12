@@ -146,12 +146,13 @@ func scroll(w *window, action tview.MouseAction, event *tcell.EventMouse) {
 	switch action {
 	case tview.MouseScrollUp:
 		// We're at the top of the view buffer
-		if row <= 0 {
+		// If we're not at the top of the content buffer, scroll up
+		if (row <= 0) && ((w.bufferIndex + len(w.content)) > w.bufferSize) {
 			_, _, _, height := w.GetInnerRect()
 			// Increment the bufferIndex by half the buffer size
 			// If that would carry us past the end of the buffer,
 			// then set the index to the last chunk of the buffer
-			newIndex := max(
+			newIndex := min(
 				(w.bufferIndex + w.bufferSize),  // Incremented buffer value
 				(len(w.content) - w.bufferSize), // Last chunk of the buffer
 			)

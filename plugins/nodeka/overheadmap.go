@@ -9,6 +9,7 @@ import (
 func initOmap() {
 	Client.AddAction("^[ vi`~!@#$%^&*()-_=+\\[\\]{};:''\",.<>\\?|\\/]{34,37}$", MapLine)
 	Client.AddAction("^$", EmptyLine)
+	Client.AddAction("\\[ exits: ", ExitLine)
 }
 
 var inMap = false
@@ -40,5 +41,14 @@ func EmptyLine(t *client.TriggerMatch) {
 	if inMap {
 		inMap = false
 		Client.Gag = true
+	}
+}
+
+func ExitLine(t *client.TriggerMatch) {
+	if inMap {
+		// something went wrong, let's reset
+		inMap = false
+		lineCount = 0
+		mapLine = ""
 	}
 }
