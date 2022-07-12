@@ -23,6 +23,7 @@ func MapLine(t *client.TriggerMatch) {
 		if t.Matches[0] == "                                    " {
 			lineCount = 0
 			Client.Show("omap", strings.TrimSuffix(mapLine, "\n"))
+			mapLine = ""
 		} else {
 			// something went wrong, mangled line?
 			lineCount = 0

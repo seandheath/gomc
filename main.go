@@ -23,18 +23,27 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/seandheath/go-mud-client/internal/client"
 	"github.com/seandheath/go-mud-client/plugins/autobuff"
 	"github.com/seandheath/go-mud-client/plugins/nodeka"
 )
 
+var profile = true
+
 func main() {
+	if profile {
+		go func() {
+			log.Println(http.ListenAndServe("localhost:6060", nil))
+		}()
+	}
 	c := client.NewClient()
 	c.LoadPlugin("nodeka", nodeka.Initialize(c, "plugins/nodeka/nodeka.yaml"))
 	c.LoadPlugin("autobuff", autobuff.Initialize(c, "plugins/autobuff/autobuff.yaml"))
 	c.Run()
-	fmt.Println("Enter any key to exit...")
+	fmt.Println("Press enter to exit")
 	fmt.Scanln()
-	return
 }

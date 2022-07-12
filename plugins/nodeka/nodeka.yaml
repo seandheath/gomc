@@ -22,6 +22,7 @@ windows:
     col: 0
     rowspan: 2
     colspan: 1
+    maxlines: 200
     scrollable: true
   status:
     row: 1
@@ -29,8 +30,8 @@ windows:
     rowspan: 1
     colspan: 1
     border: false
-    maxlines: 100
-    scrollable: false
+    maxlines: 40
+    scrollable: true
   omap:
     row: 2
     col: 1
