@@ -5,10 +5,12 @@ import (
 	"os"
 
 	"github.com/seandheath/go-mud-client/internal/client"
+	"github.com/seandheath/go-mud-client/pkg/plugin"
+	"github.com/seandheath/go-mud-client/pkg/trigger"
 	"gopkg.in/yaml.v2"
 )
 
-var Config *client.PluginConfig
+var Config *plugin.Config
 
 type Ability struct {
 	Mana       int      `yaml:"mana"`       // Mana cost of ability
@@ -31,9 +33,9 @@ var activePreventions = map[string]bool{}
 var abilities = map[string]*Ability{} // Map of ability names to ability structs
 var Client *client.Client
 
-func Initialize(c *client.Client, file string) *client.PluginConfig {
+func Initialize(c *client.Client, file string) *plugin.Config {
 	Client = c
-	cfg, err := client.LoadConfig(file)
+	cfg, err := plugin.ReadConfig(file)
 	if err != nil {
 		fmt.Println(err)
 		return nil
@@ -68,7 +70,7 @@ func Initialize(c *client.Client, file string) *client.PluginConfig {
 	return Config
 }
 
-var BuffUp client.TriggerFunc = func(t *client.TriggerMatch) {
+var BuffUp trigger.Func = func(t *trigger.Match) {
 	if name, ok := activations[t.Trigger.Re.String()]; ok { // Get the buff name from the activation string map
 		if buff, ok := abilities[name]; ok { // Get the buff from our buff list
 			buff.IsActive = true // Set it to active
@@ -80,20 +82,20 @@ var BuffUp client.TriggerFunc = func(t *client.TriggerMatch) {
 }
 
 // BuffDown handles when a buff drops, preparing it to be cast again.
-var BuffDown client.TriggerFunc = func(t *client.TriggerMatch) {
+var BuffDown trigger.Func = func(t *trigger.Match) {
 	if buff, ok := abilities[t.Matches[1]]; ok {
 		buff.IsActive = false
 	}
 }
 
-var PreventUsed client.TriggerFunc = func(t *client.TriggerMatch) {
+var PreventUsed trigger.Func = func(t *trigger.Match) {
 	activePreventions[t.Matches[1]] = true
 }
 
-var PreventAvailable client.TriggerFunc = func(t *client.TriggerMatch) {
+var PreventAvailable trigger.Func = func(t *trigger.Match) {
 	activePreventions[t.Matches[1]] = false
 }
-var CheckBuffs client.TriggerFunc = func(t *client.TriggerMatch) {
+var CheckBuffs trigger.Func = func(t *trigger.Match) {
 	for name, buff := range abilities {
 		if !buff.IsActive && !isPrevented(buff) {
 			DoBuff(name, buff)
@@ -108,15 +110,6 @@ func isPrevented(buff *Ability) bool {
 func DoBuff(name string, buff *Ability) {
 	// TODO: Do alignment and pool check
 	// TODO: Check prefer invoke etc...
-	//if buff.Endurance > 0 { // It's a skill
-	//client.Parse(name)
-	//} else {
-	//if buff.Mana > 0 { // Cast it
-	//client.Parse("cast '" + name + "'")
-	//} else if buff.Spirit > 0 { // invoke it
-	//client.Parse("invoke '" + name + "'")
-	//}
-	//}
 	if buff.Execute == "" {
 		Client.Parse(name)
 	} else {

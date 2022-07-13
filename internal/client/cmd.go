@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/seandheath/go-mud-client/pkg/trigger"
 )
 
 func (c *Client) cmdInit() {
@@ -23,7 +25,7 @@ func (c *Client) cmdInit() {
 	c.AddAlias("^#memstats$", c.MemStatsCmd)
 }
 
-func (c *Client) CaptureCmd(t *TriggerMatch) {
+func (c *Client) CaptureCmd(t *trigger.Match) {
 	s := strings.TrimPrefix(t.Matches[0], "#capture ")
 
 	if s == "overhead" {
@@ -35,7 +37,7 @@ func (c *Client) CaptureCmd(t *TriggerMatch) {
 	}
 }
 
-func (c *Client) FuncCmd(t *TriggerMatch) {
+func (c *Client) FuncCmd(t *trigger.Match) {
 	s := strings.TrimPrefix(t.Matches[0], "#func ")
 	if f, ok := c.functions[s]; ok { // Found the function
 		f(t)
@@ -44,12 +46,12 @@ func (c *Client) FuncCmd(t *TriggerMatch) {
 	}
 }
 
-func (c *Client) MatchCmd(t *TriggerMatch) {
+func (c *Client) MatchCmd(t *trigger.Match) {
 	c.CheckTriggers(c.actions, t.Matches[1])
 }
 
 // Nested triggers overwrite matches... need to pass into the function
-func (c *Client) LoopCmd(t *TriggerMatch) {
+func (c *Client) LoopCmd(t *trigger.Match) {
 	n, err := strconv.Atoi(t.Matches[1])
 	if err != nil {
 		c.ShowMain("Error parsing loop number: " + err.Error() + "\n")
@@ -59,7 +61,7 @@ func (c *Client) LoopCmd(t *TriggerMatch) {
 	}
 }
 
-func (c *Client) MemStatsCmd(t *TriggerMatch) {
+func (c *Client) MemStatsCmd(t *trigger.Match) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	c.ShowMain(fmt.Sprintf("Alloc: %d MiB", m.Alloc/1024/1024))

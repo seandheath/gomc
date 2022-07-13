@@ -7,6 +7,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/seandheath/go-mud-client/pkg/plugin"
 )
 
 const SLEEP_INTERVAL = time.Millisecond * 10
@@ -30,19 +31,7 @@ type TUI struct {
 	Parse            func(string)
 }
 
-type Window struct {
-	Row           int  `yaml:"row"`
-	Col           int  `yaml:"col"`
-	RowSpan       int  `yaml:"rowspan"`
-	ColSpan       int  `yaml:"colspan"`
-	MinGridHeight int  `yaml:"mingridheight"`
-	MinGridWidth  int  `yaml:"mingridwidth"`
-	Border        bool `yaml:"border"`
-	Scrollable    bool `yaml:"scrollable"`
-	MaxLines      int  `yaml:"maxlines"`
-}
-
-var mainWindow = Window{
+var mainWindow = plugin.Window{
 	Row:           1,
 	Col:           0,
 	RowSpan:       1,
@@ -151,7 +140,7 @@ func (t *TUI) scroll(w *window, action tview.MouseAction, event *tcell.EventMous
 	}
 }
 
-func (t *TUI) AddWindow(name string, win Window) {
+func (t *TUI) AddWindow(name string, win plugin.Window) {
 	var w *window
 	if cw, ok := t.windows[name]; ok {
 		w = cw

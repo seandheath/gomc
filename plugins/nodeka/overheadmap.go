@@ -3,7 +3,7 @@ package nodeka
 import (
 	"strings"
 
-	"github.com/seandheath/go-mud-client/internal/client"
+	"github.com/seandheath/go-mud-client/pkg/trigger"
 )
 
 func initOmap() {
@@ -16,7 +16,7 @@ var inMap = false
 var lineCount = 0
 var mapLine = ""
 
-func MapLine(t *client.TriggerMatch) {
+func MapLine(t *trigger.Match) {
 	inMap = true
 	if lineCount > 14 {
 		// Final empty line
@@ -40,14 +40,14 @@ func MapLine(t *client.TriggerMatch) {
 	Client.Gag = true
 }
 
-func EmptyLine(t *client.TriggerMatch) {
+func EmptyLine(t *trigger.Match) {
 	if inMap {
 		inMap = false
 		Client.Gag = true
 	}
 }
 
-func ExitLine(t *client.TriggerMatch) {
+func ExitLine(t *trigger.Match) {
 	if lineCount != 0 {
 		lineCount = 0
 		mapLine = ""

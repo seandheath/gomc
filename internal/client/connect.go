@@ -8,10 +8,12 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/seandheath/go-mud-client/pkg/trigger"
 )
 
 const (
-	DEADLINE = time.Millisecond * 1
+	DEADLINE = time.Millisecond * 5
 )
 
 const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
@@ -20,7 +22,7 @@ var ansiRegexp = regexp.MustCompile(ansi)
 
 // ConnectCmd takes a string from the user and attempts to ConnectCmd to the mud server.
 // If the connection is successful then a goroutine is launched to handle the connection.
-func (c *Client) ConnectCmd(t *TriggerMatch) {
+func (c *Client) ConnectCmd(t *trigger.Match) {
 	if c.conn != nil {
 		c.ShowMain("Already connected.\n")
 		return
@@ -107,17 +109,6 @@ func (c *Client) readLines(last string) ([]string, error) {
 
 	// No data
 	return lines, err
-}
-
-var timeout time.Time
-
-func split(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	for i := 0; i < len(data); i++ {
-		if data[i] == '\r' {
-			return i + 1, data[:i], nil
-		}
-	}
-	return 0, nil, nil
 }
 
 func strip(str string) string {

@@ -4,14 +4,15 @@ import (
 	"fmt"
 
 	"github.com/seandheath/go-mud-client/internal/client"
+	"github.com/seandheath/go-mud-client/pkg/plugin"
 )
 
-var Config *client.PluginConfig
+var Config *plugin.Config
 var Client *client.Client
 
-func Initialize(c *client.Client, file string) *client.PluginConfig {
+func Initialize(c *client.Client, file string) *plugin.Config {
 	Client = c
-	cfg, err := client.LoadConfig(file)
+	cfg, err := plugin.ReadConfig(file)
 	if err != nil {
 		fmt.Println(err)
 		return nil
