@@ -24,21 +24,28 @@ func Init(c *client.Client, file string) *plugin.Config {
 	abc := initAutobuff()
 	Config = plugin.Merge(cfg, abc)
 
+	// Sum damage up and show it at the beginning of the line
 	C.AddAction(`(\[ (?P<landed>\d+) of (?P<total>\d+) \].+)?(tickl|graz|scratch|bruis|sting|wound|shend|scath|pummel|pummell|batter|splinter|disfigur|fractur|lacerat|RUPTUR|MUTILAT|DEHISC|MAIM|DISMEMBER|SUNDER|CREMAT|EVISCERAT|RAVAG|IMMOLAT|LIQUIFY|LIQUIFI|VAPORIZ|ATOMIZ|OBLITERAT|ETHEREALIZ|ERADICAT)(s|S|e|E|es|ES|ed|ED|ing|ING)? \((?P<damage>\d+)\) `, DamageLine)
+	C.AddAction(`^The closed (?P<door>.+) block\(s\) your passage (?P<direction>.+)\.$`, OpenDoor)
 
 	return Config
 }
 
-func DamageLine(t *trigger.Match) {
+func OpenDoor(t *trigger.Trigger) {
+	C.Parse("open " + t.Results["door"])
+	C.Parse(t.Results["direction"])
+}
+
+func DamageLine(t *trigger.Trigger) {
 	var td int
-	d, err := strconv.Atoi(t.Matches[6])
+	d, err := strconv.Atoi(t.Results["damage"])
 	if err != nil {
 		return
 	}
 	if t.Matches[2] == "" {
 		td = d
 	} else {
-		l, err := strconv.Atoi(t.Matches[2])
+		l, err := strconv.Atoi(t.Results["landed"])
 		if err != nil {
 			return
 		}

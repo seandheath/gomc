@@ -19,7 +19,7 @@ var inMap = false
 var lineCount = 0
 var mapLine = ""
 
-func MapLine(t *trigger.Match) {
+func MapLine(t *trigger.Trigger) {
 	inMap = true
 	if lineCount < OSIZE {
 		lineCount += 1
@@ -43,14 +43,14 @@ func MapLine(t *trigger.Match) {
 	C.Gag = true
 }
 
-func EmptyLine(t *trigger.Match) {
+func EmptyLine(t *trigger.Trigger) {
 	if inMap {
 		inMap = false
 		C.Gag = true
 	}
 }
 
-func ExitLine(t *trigger.Match) {
+func ExitLine(t *trigger.Trigger) {
 	if lineCount != 0 {
 		lineCount = 0
 		mapLine = ""
@@ -60,7 +60,7 @@ func ExitLine(t *trigger.Match) {
 	}
 }
 
-func ReplyLine(t *trigger.Match) {
+func ReplyLine(t *trigger.Trigger) {
 	inMap = false
 	if lineCount != 0 {
 		lineCount = 0

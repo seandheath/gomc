@@ -22,7 +22,7 @@ var ansiRegexp = regexp.MustCompile(ansi)
 
 // ConnectCmd takes a string from the user and attempts to ConnectCmd to the mud server.
 // If the connection is successful then a goroutine is launched to handle the connection.
-func (c *Client) ConnectCmd(t *trigger.Match) {
+func (c *Client) ConnectCmd(t *trigger.Trigger) {
 	if c.conn != nil {
 		c.Print("Already connected.\n")
 		return
@@ -112,5 +112,6 @@ func (c *Client) readLines(last string) ([]string, error) {
 }
 
 func strip(str string) string {
-	return ansiRegexp.ReplaceAllString(str, "")
+	// Remove ANSI codes and convert semicolons into colons to protect from trigger abuse
+	return strings.ReplaceAll(ansiRegexp.ReplaceAllString(str, ""), ";", ":")
 }

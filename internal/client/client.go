@@ -91,7 +91,7 @@ func (c *Client) Run() {
 
 // AddFunction maps a string to a function so that you can call the function
 // from the mud with #function <name>
-func (c *Client) AddFunction(name string, f func(t *trigger.Match)) {
+func (c *Client) AddFunction(name string, f func(t *trigger.Trigger)) {
 	c.functions[name] = f
 }
 
@@ -128,21 +128,24 @@ func (c *Client) LoadPlugin(name string, p *plugin.Config) {
 func (c *Client) CheckTriggers(list []trigger.Trigger, text string) bool {
 	matched := false
 	for _, t := range list {
-		m := t.FindStringSubmatch(text)
-		if len(m) > 0 {
+		t.Matches = t.FindStringSubmatch(text)
+		if len(t.Matches) > 0 {
 			matched = true
-			mt := &trigger.Match{
-				Matches: m,
-				Trigger: &t,
+			if len(t.SubexpNames()) > 0 {
+				for i, m := range t.Matches {
+					if i > 0 {
+						t.Results[t.SubexpNames()[i]] = m
+					}
+				}
 			}
-			t.Cmd(mt)
+			t.Cmd(&t)
 		}
 	}
 	return matched
 }
 
 func (c *Client) addTriggerString(list []trigger.Trigger, rs string, cmd string) []trigger.Trigger {
-	f := func(t *trigger.Match) {
+	f := func(t *trigger.Trigger) {
 		c.Parse(cmd)
 	}
 	return c.addTrigger(list, rs, f)
@@ -161,32 +164,33 @@ func (c *Client) addTrigger(list []trigger.Trigger, rs string, cmd trigger.Func)
 		return list
 	}
 	return append(list, trigger.Trigger{
-		Regexp: re,
-		Cmd:    cmd,
+		Regexp:  re,
+		Cmd:     cmd,
+		Results: map[string]string{},
 	})
 }
 
-func (c *Client) BaseActionCmd(t *trigger.Match) {
+func (c *Client) BaseActionCmd(t *trigger.Trigger) {
 	c.showtriggers(c.actions, "actions")
 }
 
-func (c *Client) AddActionCmd(t *trigger.Match) {
+func (c *Client) AddActionCmd(t *trigger.Trigger) {
 	c.AddActionString(t.Matches[1], t.Matches[2])
 }
 
-func (c *Client) UnactionCmd(t *trigger.Match) {
+func (c *Client) UnactionCmd(t *trigger.Trigger) {
 	c.actions = c.untrigger(c.actions, "action", t.Matches[1])
 }
 
-func (c *Client) BaseAliasCmd(t *trigger.Match) {
+func (c *Client) BaseAliasCmd(t *trigger.Trigger) {
 	c.showtriggers(c.aliases, "aliases")
 }
 
-func (c *Client) AddAliasCmd(t *trigger.Match) {
+func (c *Client) AddAliasCmd(t *trigger.Trigger) {
 	c.AddAliasString(t.Matches[1], t.Matches[2])
 }
 
-func (c *Client) UnaliasCmd(t *trigger.Match) {
+func (c *Client) UnaliasCmd(t *trigger.Trigger) {
 	c.aliases = c.untrigger(c.aliases, "alias", t.Matches[1])
 }
 

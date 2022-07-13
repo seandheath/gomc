@@ -43,14 +43,15 @@ type Area struct {
 }
 
 type Map struct {
-	room    *Room // Current room
-	area    *Area // Current area
-	exits   map[Direction]bool
-	rname   string
-	Areas   map[string]*Area `yaml:"areas"` // All areas in the map
-	Rooms   map[int]*Room    `yaml:"rooms"` // All rooms in the map
-	moving  bool
-	movedir Direction
+	room      *Room // Current room
+	area      *Area // Current area
+	exits     map[Direction]bool
+	rname     string
+	Areas     map[string]*Area `yaml:"areas"` // All areas in the map
+	Rooms     map[int]*Room    `yaml:"rooms"` // All rooms in the map
+	moving    bool
+	movequeue []Direction
+	movedir   Direction
 }
 
 var dirmap map[string]Direction = map[string]Direction{
@@ -94,7 +95,8 @@ func Init(cli *client.Client, file string) *plugin.Config {
 
 	M = NewMap()
 	addCommands(C, M)
-	C.AddFunction("Exits", M.Exits)
+	C.AddFunction("MoveHappening", M.MoveHappening)
+	C.AddFunction("MoveDone", M.MoveDone)
 
 	Config = cfg
 	return Config
@@ -146,8 +148,9 @@ func (m *Map) StartMove(direction string) {
 	m.moving = true
 }
 
-func (m *Map) Exits(t *trigger.Match) {
+func (m *Map) MoveHappening(t *trigger.Trigger) {
 	if m.moving {
+		// TODO Check Room
 		m.rname = t.Matches[1]
 		m.exits[North] = t.Matches[2] == "north"
 		m.exits[East] = t.Matches[3] == "east"
@@ -157,7 +160,8 @@ func (m *Map) Exits(t *trigger.Match) {
 		m.exits[Down] = t.Matches[7] == "down"
 	}
 }
-func (m *Map) move(direction Direction) {
+func (m *Map) MoveDone(t *trigger.Trigger) {}
+func (m *Map) queueMove(direction Direction) {
 	m.moving = true
-	m.movedir = direction
+	m.movequeue = append(m.movequeue, direction)
 }

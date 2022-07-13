@@ -61,12 +61,24 @@ func initAutobuff() *plugin.Config {
 	C.AddAction("^You are no longer affected by: (.+)\\.$", BuffDown)
 	C.AddAction("^You cannot perform (.+) abilities again yet", PreventUsed)
 	C.AddAction("^You may again perform (.+) abilities", PreventAvailable)
+	C.AddAction("^Your botanswer is: autobuff done", func(t *trigger.Trigger) { attempting = false })
 	C.AddAlias("^spel$", CheckBuffs)
+	C.AddAlias("^abon$", AutobuffOn)
+	C.AddAlias("^aboff$", AutobuffOff)
 	return cfg
 }
 
-var BuffUp trigger.Func = func(t *trigger.Match) {
-	if name, ok := activations[t.Trigger.String()]; ok { // Get the buff name from the activation string map
+var autoBuffOn = false
+
+func AutobuffOn(t *trigger.Trigger) {
+	autoBuffOn = true
+}
+func AutobuffOff(t *trigger.Trigger) {
+	autoBuffOn = false
+}
+
+var BuffUp trigger.Func = func(t *trigger.Trigger) {
+	if name, ok := activations[t.String()]; ok { // Get the buff name from the activation string map
 		if buff, ok := abilities[name]; ok { // Get the buff from our buff list
 			buff.IsActive = true // Set it to active
 			if buff.Prevention != "" {
@@ -77,24 +89,37 @@ var BuffUp trigger.Func = func(t *trigger.Match) {
 }
 
 // BuffDown handles when a buff drops, preparing it to be cast again.
-var BuffDown trigger.Func = func(t *trigger.Match) {
+var BuffDown trigger.Func = func(t *trigger.Trigger) {
 	if buff, ok := abilities[t.Matches[1]]; ok {
 		buff.IsActive = false
 	}
+	if autoBuffOn {
+		CheckBuffs(nil)
+	}
 }
 
-var PreventUsed trigger.Func = func(t *trigger.Match) {
+var PreventUsed trigger.Func = func(t *trigger.Trigger) {
 	activePreventions[t.Matches[1]] = true
 }
 
-var PreventAvailable trigger.Func = func(t *trigger.Match) {
+var PreventAvailable trigger.Func = func(t *trigger.Trigger) {
+	if autoBuffOn {
+		CheckBuffs(nil)
+	}
 	activePreventions[t.Matches[1]] = false
 }
-var CheckBuffs trigger.Func = func(t *trigger.Match) {
+var attempting = false
+var CheckBuffs trigger.Func = func(t *trigger.Trigger) {
 	for name, buff := range abilities {
 		if !buff.IsActive && !isPrevented(buff) {
-			DoBuff(name, buff)
+			if !attempting {
+				DoBuff(name, buff)
+				C.SendNow("botanswer autobuff done")
+				attempting = true
+			}
 		}
+	}
+	if attempting {
 	}
 }
 

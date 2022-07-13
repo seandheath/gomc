@@ -1,10 +1,17 @@
 ---
 actions:
-  '^.+ says , ''.+': '#capture' 
+  # Capture Actions
+  '^.+ says, ''': '#capture' 
+  'tells you,': '#capture'
   '^You say, ''.+': '#capture' 
   '^< (emote|social) >': '#capture'
+  '^\[ (>>>|<>|Group|Expert|Immort|OOC|Virtue|newbie|debate|gossip|trivia|sing|shout|yell|auction)': '#capture'
+  '^Your bounty': '#capture'
+  '^(#|<<)': '#capture'
+  '^You are CAUGHT': '#capture'
   '^Increased mastery in your ability of': '#capture'
-  '^The aura of this place heals you\.': '#tick'
+
+  #'^The aura of this place heals you\.': '#tick'
 
 aliases:
   '^nodeka': '#connect nodeka.com:9210'

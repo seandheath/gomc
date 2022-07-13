@@ -25,7 +25,7 @@ func (c *Client) cmdInit() {
 	c.AddAlias("^#memstats$", c.MemStatsCmd)
 }
 
-func (c *Client) CaptureCmd(t *trigger.Match) {
+func (c *Client) CaptureCmd(t *trigger.Trigger) {
 	s := strings.TrimPrefix(t.Matches[0], "#capture ")
 
 	if s == "overhead" {
@@ -37,7 +37,7 @@ func (c *Client) CaptureCmd(t *trigger.Match) {
 	}
 }
 
-func (c *Client) FuncCmd(t *trigger.Match) {
+func (c *Client) FuncCmd(t *trigger.Trigger) {
 	s := strings.TrimPrefix(t.Matches[0], "#func ")
 	if f, ok := c.functions[s]; ok { // Found the function
 		f(t)
@@ -46,12 +46,12 @@ func (c *Client) FuncCmd(t *trigger.Match) {
 	}
 }
 
-func (c *Client) MatchCmd(t *trigger.Match) {
+func (c *Client) MatchCmd(t *trigger.Trigger) {
 	c.CheckTriggers(c.actions, t.Matches[1])
 }
 
 // Nested triggers overwrite matches... need to pass into the function
-func (c *Client) LoopCmd(t *trigger.Match) {
+func (c *Client) LoopCmd(t *trigger.Trigger) {
 	n, err := strconv.Atoi(t.Matches[1])
 	if err != nil {
 		c.Print("Error parsing loop number: " + err.Error() + "\n")
@@ -61,7 +61,7 @@ func (c *Client) LoopCmd(t *trigger.Match) {
 	}
 }
 
-func (c *Client) MemStatsCmd(t *trigger.Match) {
+func (c *Client) MemStatsCmd(t *trigger.Trigger) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	c.Print(fmt.Sprintf("Alloc: %d MiB", m.Alloc/1024/1024))
