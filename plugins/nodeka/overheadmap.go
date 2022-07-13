@@ -40,11 +40,12 @@ func MapLine(t *trigger.Match) {
 		//}
 		//}
 	}
-	//C.Gag = true
+	C.Gag = true
 }
 
 func EmptyLine(t *trigger.Match) {
 	if inMap {
+		inMap = false
 		C.Gag = true
 	}
 }

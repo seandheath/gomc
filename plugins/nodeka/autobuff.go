@@ -66,7 +66,7 @@ func initAutobuff() *plugin.Config {
 }
 
 var BuffUp trigger.Func = func(t *trigger.Match) {
-	if name, ok := activations[t.Trigger.Re.String()]; ok { // Get the buff name from the activation string map
+	if name, ok := activations[t.Trigger.String()]; ok { // Get the buff name from the activation string map
 		if buff, ok := abilities[name]; ok { // Get the buff from our buff list
 			buff.IsActive = true // Set it to active
 			if buff.Prevention != "" {

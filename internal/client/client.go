@@ -95,11 +95,6 @@ func (c *Client) AddFunction(name string, f func(t *trigger.Match)) {
 	c.functions[name] = f
 }
 
-type showText struct {
-	window string
-	text   string
-}
-
 // Print prints text on the main screen
 func (c *Client) Print(text string) {
 	c.PrintTo("main", text)
@@ -133,10 +128,14 @@ func (c *Client) LoadPlugin(name string, p *plugin.Config) {
 func (c *Client) CheckTriggers(list []trigger.Trigger, text string) bool {
 	matched := false
 	for _, t := range list {
-		m := t.Re.FindStringSubmatch(text)
+		m := t.FindStringSubmatch(text)
 		if len(m) > 0 {
 			matched = true
-			t.Cmd(&trigger.Match{m, &t})
+			mt := &trigger.Match{
+				Matches: m,
+				Trigger: &t,
+			}
+			t.Cmd(mt)
 		}
 	}
 	return matched
@@ -161,7 +160,10 @@ func (c *Client) addTrigger(list []trigger.Trigger, rs string, cmd trigger.Func)
 		c.Print("Error compiling trigger: " + err.Error() + "\n")
 		return list
 	}
-	return append(list, trigger.Trigger{re, cmd})
+	return append(list, trigger.Trigger{
+		Regexp: re,
+		Cmd:    cmd,
+	})
 }
 
 func (c *Client) BaseActionCmd(t *trigger.Match) {
@@ -191,7 +193,7 @@ func (c *Client) UnaliasCmd(t *trigger.Match) {
 func (c *Client) showtriggers(t []trigger.Trigger, ttype string) {
 	c.Print("## Current " + ttype + ":\n")
 	for i, a := range t {
-		c.Print(fmt.Sprintf("\n[%d]: %s", i, a.Re.String()))
+		c.Print(fmt.Sprintf("\n[%d]: %s", i, a.String()))
 	}
 	c.Print("\n")
 }

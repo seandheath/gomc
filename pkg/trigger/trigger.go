@@ -6,11 +6,11 @@ import (
 
 type Match struct {
 	Matches []string
-	Trigger *Trigger
+	*Trigger
 }
 
 type Func func(*Match)
 type Trigger struct {
-	Re  *regexp.Regexp
+	*regexp.Regexp
 	Cmd Func
 }
