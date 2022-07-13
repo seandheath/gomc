@@ -17,15 +17,22 @@ windows:
     colspan: 2
     border: true
     scrollable: true
-  main:
+  scroll:
     row: 1
     col: 0
     rowspan: 2
     colspan: 1
     maxlines: 200
     scrollable: true
+  main:
+    row: 2
+    col: 0
+    rowspan: 2
+    colspan: 1
+    maxlines: 200
+    scrollable: false
   status:
-    row: 1
+    row: 2
     col: 1
     rowspan: 1
     colspan: 1
@@ -33,7 +40,7 @@ windows:
     maxlines: 40
     scrollable: true
   omap:
-    row: 2
+    row: 3
     col: 1
     rowspan: 1
     colspan: 1
@@ -43,9 +50,10 @@ windows:
 
 grid:
   columns:
-    - 0 # chat / main
+    - 0 # chat / scroll / main
     - 38 # chat / status / omap
   rows: 
     - 15 # chat
+    - 0  # scroll / status
     - 0  # main / status
     - 17 # main / omap
