@@ -12,36 +12,46 @@ const (
 )
 
 type Coordinates struct {
-	X int
-	Y int
-	Z int
+	X int `yaml:"x"`
+	Y int `yaml:"y"`
+	Z int `yaml:"z"`
 }
 
 type Room struct {
-	ID          int // Unique ID
-	Name        string
-	Exits       map[Direction]*Room
-	Area        *Area
-	Coordinates Coordinates
-	Flags       []string
+	ID          int                 `yaml:"id"`
+	Name        string              `yaml:"name"`
+	Exits       map[Direction]*Room `yaml:"exits"`
+	Area        *Area               `yaml:"area"`
+	Coordinates Coordinates         `yaml:"coordinates"`
+	Tags        []string            `yaml:"tags"`
 }
 
 type Area struct {
-	Name  string // Must have unique name
-	Rooms map[int]Room
+	Name  string        `yaml:"name"`
+	Rooms map[int]*Room `yaml:"rooms"`
 }
 
 type Map struct {
 	CurrentRoom *Room
 	CurrentArea *Area
-	Areas       map[string]*Area
-	Rooms       map[string]*Room
+	Areas       map[string]Area `yaml:"areas"`
+	Rooms       map[string]Room `yaml:"rooms"`
 }
 
-func (m *Map) Load() {}
+var reverse map[Direction]Direction = map[Direction]Direction{
+	North: South,
+	East:  West,
+	South: North,
+	West:  East,
+	Up:    Down,
+	Down:  Up,
+}
 
+func (m *Map) Load(path string) *Map                  { return nil }
+func (m *Map) Save(path string) error                 { return nil }
 func Move(direction Direction) *Room                  { return nil }
-func AddRoom(name string, exits string, area *Area)   {}
+func AddRoom(name string, exits string, area string)  {}
 func FindRoom(name string, exits string) *Room        { return nil }
 func ShiftRoom(room *Room, direction Direction) *Room { return nil }
 func AddArea(name string)
+func Show(width int, height int) string { return "" }
