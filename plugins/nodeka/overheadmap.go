@@ -6,10 +6,13 @@ import (
 	"github.com/seandheath/go-mud-client/pkg/trigger"
 )
 
+const OSIZE = 15
+
 func initOmap() {
-	Client.AddAction("^[ vi`~!@#$%^&*()-_=+\\[\\]{};:''\",.<>\\?|\\/]{34,37}$", MapLine)
-	Client.AddAction("^$", EmptyLine)
-	Client.AddAction("\\[ exits: ", ExitLine)
+	C.AddAction("^[ vi`~!@#$%^&*()-_=+\\[\\]{};:''\",.<>\\?|\\/]{34,37}$", MapLine)
+	C.AddAction("^$", EmptyLine)
+	C.AddAction("\\[ exits: ", ExitLine)
+	C.AddAction(`^\[Reply:`, ReplyLine)
 }
 
 var inMap = false
@@ -18,32 +21,31 @@ var mapLine = ""
 
 func MapLine(t *trigger.Match) {
 	inMap = true
-	if lineCount > 14 {
+	if lineCount < OSIZE {
+		lineCount += 1
+		mapLine += C.RawLine
+	} else {
 		// Final empty line
 		// TODO fix for extended map
-		if t.Matches[0] == "                                    " {
-			lineCount = 0
-			Client.Show("omap", strings.TrimSuffix(mapLine, "\n"))
-			mapLine = ""
-		} else {
-			// something went wrong, mangled line?
-			lineCount = 0
-			mapLine = ""
-			for i := 0; i < 16; i++ {
-				Client.Show("omap", "\n")
-			}
-		}
-	} else {
-		lineCount += 1
-		mapLine += Client.RawLine
+		//if t.Matches[0] == "                                    " {
+		lineCount = 0
+		C.PrintTo("omap", strings.TrimSuffix(mapLine, "\n"))
+		mapLine = ""
+		//} else {
+		// something went wrong, mangled line?
+		//lineCount = 0
+		//mapLine = ""
+		//for i := 0; i <= OSIZE; i++ {
+		//C.PrintTo("omap", "\n")
+		//}
+		//}
 	}
-	Client.Gag = true
+	//C.Gag = true
 }
 
 func EmptyLine(t *trigger.Match) {
 	if inMap {
-		inMap = false
-		Client.Gag = true
+		C.Gag = true
 	}
 }
 
@@ -51,8 +53,19 @@ func ExitLine(t *trigger.Match) {
 	if lineCount != 0 {
 		lineCount = 0
 		mapLine = ""
-		for i := 0; i < 16; i++ {
-			Client.Show("omap", "\n")
+		for i := 0; i <= OSIZE; i++ {
+			C.PrintTo("omap", "\n")
+		}
+	}
+}
+
+func ReplyLine(t *trigger.Match) {
+	inMap = false
+	if lineCount != 0 {
+		lineCount = 0
+		mapLine = ""
+		for i := 0; i <= OSIZE; i++ {
+			C.PrintTo("omap", "\n")
 		}
 	}
 }

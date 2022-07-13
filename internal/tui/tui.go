@@ -192,7 +192,7 @@ func (t *TUI) handleInput(key tcell.Key) {
 	}
 }
 
-func (t *TUI) Show(name string, text string) {
+func (t *TUI) Print(name string, text string) {
 	t.dataReady = true
 	if w, ok := t.windows[name]; ok {
 		w.content += text

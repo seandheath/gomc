@@ -1,16 +1,14 @@
-package autobuff
+package nodeka
 
 import (
 	"fmt"
+	"log"
 	"os"
 
-	"github.com/seandheath/go-mud-client/internal/client"
 	"github.com/seandheath/go-mud-client/pkg/plugin"
 	"github.com/seandheath/go-mud-client/pkg/trigger"
 	"gopkg.in/yaml.v2"
 )
-
-var Config *plugin.Config
 
 type Ability struct {
 	Mana       int      `yaml:"mana"`       // Mana cost of ability
@@ -31,20 +29,17 @@ type Abilities struct {
 var activations = map[string]string{} // Map of activation strings to ability name
 var activePreventions = map[string]bool{}
 var abilities = map[string]*Ability{} // Map of ability names to ability structs
-var Client *client.Client
 
-func Initialize(c *client.Client, file string) *plugin.Config {
-	Client = c
-	cfg, err := plugin.ReadConfig(file)
+func initAutobuff() *plugin.Config {
+	cfg, err := plugin.ReadConfig("plugins/nodeka/autobuff.yaml")
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		return nil
 	}
-	Config = cfg
 
-	b, err := os.ReadFile("plugins/autobuff/abilities.yaml")
+	b, err := os.ReadFile("plugins/nodeka/abilities.yaml")
 	if err != nil {
-		Client.LogError.Println(err)
+		C.LogError.Println(err)
 	}
 	ab := Abilities{}
 
@@ -59,15 +54,15 @@ func Initialize(c *client.Client, file string) *plugin.Config {
 	// Also map the activation strings to the buff names
 	for name, buff := range abilities {
 		for _, activation := range buff.Activation {
-			activations[activation] = name       // Map the activation string
-			Client.AddAction(activation, BuffUp) // Create the action
+			activations[activation] = name  // Map the activation string
+			C.AddAction(activation, BuffUp) // Create the action
 		}
 	}
-	Client.AddAction("^You are no longer affected by: (.+)\\.$", BuffDown)
-	Client.AddAction("^You cannot perform (.+) abilities again yet", PreventUsed)
-	Client.AddAction("^You may again perform (.+) abilities", PreventAvailable)
-	Client.AddAlias("^spel$", CheckBuffs)
-	return Config
+	C.AddAction("^You are no longer affected by: (.+)\\.$", BuffDown)
+	C.AddAction("^You cannot perform (.+) abilities again yet", PreventUsed)
+	C.AddAction("^You may again perform (.+) abilities", PreventAvailable)
+	C.AddAlias("^spel$", CheckBuffs)
+	return cfg
 }
 
 var BuffUp trigger.Func = func(t *trigger.Match) {
@@ -111,8 +106,8 @@ func DoBuff(name string, buff *Ability) {
 	// TODO: Do alignment and pool check
 	// TODO: Check prefer invoke etc...
 	if buff.Execute == "" {
-		Client.Parse(name)
+		C.Parse(name)
 	} else {
-		Client.Parse(buff.Execute)
+		C.Parse(buff.Execute)
 	}
 }

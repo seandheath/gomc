@@ -64,7 +64,7 @@ func (c *Client) Parse(text string) {
 	if c.CheckTriggers(c.aliases, text) { // Check for aliases / commands
 		return
 	} else if c.conn == nil { // Not connected yet
-		c.ShowMain("Not connected.\n")
+		c.Print("Not connected.\n")
 		return
 	} else if strings.Contains(text, ";") { // Allow splitting commands by ;
 		s := strings.Split(text, ";")
@@ -77,10 +77,10 @@ func (c *Client) Parse(text string) {
 }
 
 func (c *Client) SendNow(text string) {
-	c.ShowMain(text + "\n")
+	c.Print(text + "\n")
 	_, err := c.conn.Write([]byte(text + "\n"))
 	if err != nil {
-		c.ShowMain("Error sending: " + err.Error() + "\n")
+		c.Print("Error sending: " + err.Error() + "\n")
 		c.conn = nil
 	}
 }
@@ -100,12 +100,14 @@ type showText struct {
 	text   string
 }
 
-func (c *Client) ShowMain(text string) {
-	c.Show("main", text)
+// Print prints text on the main screen
+func (c *Client) Print(text string) {
+	c.PrintTo("main", text)
 }
 
-func (c *Client) Show(window string, text string) {
-	c.tui.Show(window, text)
+// PrintTo prints text to the specified window
+func (c *Client) PrintTo(window string, text string) {
+	c.tui.Print(window, text)
 }
 
 func (c *Client) LoadPlugin(name string, p *plugin.Config) {
@@ -156,7 +158,7 @@ func (c *Client) getFunc(cmd string) trigger.Func {
 func (c *Client) addTrigger(list []trigger.Trigger, rs string, cmd trigger.Func) []trigger.Trigger {
 	re, err := regexp.Compile(rs)
 	if err != nil {
-		c.ShowMain("Error compiling trigger: " + err.Error() + "\n")
+		c.Print("Error compiling trigger: " + err.Error() + "\n")
 		return list
 	}
 	return append(list, trigger.Trigger{re, cmd})
@@ -187,21 +189,21 @@ func (c *Client) UnaliasCmd(t *trigger.Match) {
 }
 
 func (c *Client) showtriggers(t []trigger.Trigger, ttype string) {
-	c.ShowMain("## Current " + ttype + ":\n")
+	c.Print("## Current " + ttype + ":\n")
 	for i, a := range t {
-		c.ShowMain(fmt.Sprintf("\n[%d]: %s", i, a.Re.String()))
+		c.Print(fmt.Sprintf("\n[%d]: %s", i, a.Re.String()))
 	}
-	c.ShowMain("\n")
+	c.Print("\n")
 }
 
 func (c *Client) untrigger(triggerList []trigger.Trigger, triggerType string, index string) []trigger.Trigger {
 	n, err := strconv.Atoi(index)
 	if err != nil {
-		c.ShowMain(fmt.Sprintf("Invalid %s number: %d\n", triggerType, n))
+		c.Print(fmt.Sprintf("Invalid %s number: %d\n", triggerType, n))
 		return triggerList
 	}
 	if n >= len(c.actions) {
-		c.ShowMain(fmt.Sprintf("%s not found: %d\n", triggerType, n))
+		c.Print(fmt.Sprintf("%s not found: %d\n", triggerType, n))
 		return triggerList
 	}
 	return append(triggerList[:n], triggerList[n+1:]...)

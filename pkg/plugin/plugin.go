@@ -57,3 +57,17 @@ func ReadConfig(cfg string) (*Config, error) {
 	}
 	return p, nil
 }
+
+// woohoo generics!
+func merge[V string | trigger.Func](a map[string]V, b map[string]V) map[string]V {
+	for k, v := range b {
+		a[k] = v
+	}
+	return a
+}
+func Merge(a *Config, b *Config) *Config {
+	merge(a.Actions, b.Actions)
+	merge(a.Aliases, b.Aliases)
+	merge(a.Functions, b.Functions)
+	return a
+}

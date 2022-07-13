@@ -24,13 +24,13 @@ var ansiRegexp = regexp.MustCompile(ansi)
 // If the connection is successful then a goroutine is launched to handle the connection.
 func (c *Client) ConnectCmd(t *trigger.Match) {
 	if c.conn != nil {
-		c.ShowMain("Already connected.\n")
+		c.Print("Already connected.\n")
 		return
 	}
 	text := t.Matches[1]
 	conn, err := net.Dial("tcp", text)
 	if err != nil {
-		c.ShowMain("Failed to connect: " + err.Error() + "\n")
+		c.Print("Failed to connect: " + err.Error() + "\n")
 	}
 	c.conn = conn
 	s := bufio.NewScanner(c.conn)
@@ -51,7 +51,7 @@ func (c *Client) ConnectCmd(t *trigger.Match) {
 			} else if err != nil {
 				// Some other connection error
 				c.conn = nil
-				c.ShowMain("Disconnected: " + err.Error())
+				c.Print("Disconnected: " + err.Error())
 				return
 			} else {
 				// New data and deadline not exceeded
@@ -74,7 +74,7 @@ func (c *Client) ConnectCmd(t *trigger.Match) {
 					newLine += c.handleLine(line)
 				}
 				if newLine != "" {
-					c.ShowMain(newLine)
+					c.Print(newLine)
 				}
 			}
 

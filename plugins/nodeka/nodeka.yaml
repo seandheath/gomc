@@ -4,6 +4,7 @@ actions:
   '^You say, ''.+': '#capture' 
   '^< (emote|social) >': '#capture'
   '^Increased mastery in your ability of': '#capture'
+  '^The aura of this place heals you\.': '#tick'
 
 aliases:
   '^nodeka': '#connect nodeka.com:9210'
@@ -39,7 +40,7 @@ windows:
     colspan: 1
     border: true
     scrollable: false
-    maxlines: 17
+    maxlines: 16
 
 grid:
   columns:

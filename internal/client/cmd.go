@@ -29,11 +29,11 @@ func (c *Client) CaptureCmd(t *trigger.Match) {
 	s := strings.TrimPrefix(t.Matches[0], "#capture ")
 
 	if s == "overhead" {
-		c.Show("omap", c.RawLine)
+		c.PrintTo("omap", c.RawLine)
 		c.Gag = true
 	} else {
 		ts := time.Now().Format("2006:01:02 15:04:05")
-		c.Show("chat", fmt.Sprintf("[%s] %s\n", ts, strings.TrimSuffix(c.RawLine, "\n")))
+		c.PrintTo("chat", fmt.Sprintf("[%s] %s\n", ts, strings.TrimSuffix(c.RawLine, "\n")))
 	}
 }
 
@@ -42,7 +42,7 @@ func (c *Client) FuncCmd(t *trigger.Match) {
 	if f, ok := c.functions[s]; ok { // Found the function
 		f(t)
 	} else {
-		c.ShowMain("Function not found:" + t.Matches[0] + "\n")
+		c.Print("Function not found:" + t.Matches[0] + "\n")
 	}
 }
 
@@ -54,7 +54,7 @@ func (c *Client) MatchCmd(t *trigger.Match) {
 func (c *Client) LoopCmd(t *trigger.Match) {
 	n, err := strconv.Atoi(t.Matches[1])
 	if err != nil {
-		c.ShowMain("Error parsing loop number: " + err.Error() + "\n")
+		c.Print("Error parsing loop number: " + err.Error() + "\n")
 	}
 	for i := 0; i < n; i++ {
 		c.Parse(t.Matches[2])
@@ -64,5 +64,5 @@ func (c *Client) LoopCmd(t *trigger.Match) {
 func (c *Client) MemStatsCmd(t *trigger.Match) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	c.ShowMain(fmt.Sprintf("Alloc: %d MiB", m.Alloc/1024/1024))
+	c.Print(fmt.Sprintf("Alloc: %d MiB", m.Alloc/1024/1024))
 }
