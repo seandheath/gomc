@@ -29,6 +29,9 @@ func MapLine(t *client.TriggerMatch) {
 			// something went wrong, mangled line?
 			lineCount = 0
 			mapLine = ""
+			for i := 0; i < 16; i++ {
+				Client.Show("omap", "\n")
+			}
 		}
 	} else {
 		lineCount += 1
@@ -45,10 +48,11 @@ func EmptyLine(t *client.TriggerMatch) {
 }
 
 func ExitLine(t *client.TriggerMatch) {
-	if inMap {
-		// something went wrong, let's reset
-		inMap = false
+	if lineCount != 0 {
 		lineCount = 0
 		mapLine = ""
+		for i := 0; i < 16; i++ {
+			Client.Show("omap", "\n")
+		}
 	}
 }

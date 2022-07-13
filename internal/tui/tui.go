@@ -3,7 +3,6 @@ package tui
 import (
 	"io"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -14,10 +13,9 @@ const SLEEP_INTERVAL = time.Millisecond * 10
 
 type window struct {
 	*tview.TextView
-	writer      io.Writer
-	content     []string
-	bufferIndex int
-	bufferSize  int
+	writer    io.Writer
+	content   string
+	scrolling bool
 }
 
 type TUI struct {
@@ -45,7 +43,7 @@ type Window struct {
 }
 
 var mainWindow = Window{
-	Row:           0,
+	Row:           1,
 	Col:           0,
 	RowSpan:       1,
 	ColSpan:       1,
@@ -70,11 +68,13 @@ func NewTUI() *TUI {
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			switch event.Key() {
 			case tcell.KeyESC:
-				scrollToEnd(tui.windows["main"])
+				tui.scrollToEnd(tui.windows["main"])
 			case tcell.KeyPgUp:
 				tui.app.SetFocus(tui.windows["main"])
+				tui.scrollUp(tui.windows["main"])
 			case tcell.KeyPgDn:
 				tui.app.SetFocus(tui.windows["main"])
+				tui.scrollDown(tui.windows["main"])
 			case tcell.KeyUp:
 				if len(tui.inputHistory) > 0 {
 					tui.historyIndex += 1
@@ -110,78 +110,44 @@ func NewTUI() *TUI {
 	return tui
 }
 
-func setScrollBuffer(w *window, scrollTarget int) {
-	// Make a new string to fill the view buffer
-	ns := w.content[w.bufferIndex : w.bufferIndex+w.bufferSize]
-
-	// Write the string to the window
+func (t *TUI) scrollToEnd(w *window) {
+	w.scrolling = false
+	_, _, _, height := w.GetInnerRect()
 	w.Clear()
-	w.writer.Write([]byte(strings.Join(ns, "\n")))
-	w.ScrollTo(scrollTarget, 0) // re-scroll to the provided offset
+	w.SetMaxLines(height)
+	w.writer.Write([]byte(w.content))
+	//w.ScrollToEnd()
 }
 
-func scrollToEnd(w *window) {
-	if w.bufferIndex > 0 {
-		w.bufferIndex = 0
-		setScrollBuffer(w, 0)
-	} else {
-		w.ScrollToEnd()
+func (t *TUI) scrollUp(w *window) {
+	if !w.scrolling {
+		w.scrolling = true
+		w.Clear()
+		w.SetMaxLines(0)
+		w.writer.Write([]byte(w.content))
+		lines := w.GetOriginalLineCount()
+		w.ScrollTo(lines-1, 0)
+	}
+}
+func (t *TUI) scrollDown(w *window) {
+	if w.scrolling {
+		_, _, _, height := w.GetInnerRect()
+		row, _ := w.GetScrollOffset()
+		lc := w.GetOriginalLineCount()
+		if lc <= (row + height) {
+			// we're at the bottom
+			t.scrollToEnd(w)
+		}
 	}
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-func min(a, b int) int {
-	if a > b {
-		return b
-	}
-	return a
-}
-func scroll(w *window, action tview.MouseAction, event *tcell.EventMouse) {
-	row, _ := w.GetScrollOffset()
+func (t *TUI) scroll(w *window, action tview.MouseAction, event *tcell.EventMouse) {
+
 	switch action {
 	case tview.MouseScrollUp:
-		// We're at the top of the view buffer
-		// If we're not at the top of the content buffer, scroll up
-		if (row <= 0) && ((w.bufferIndex + len(w.content)) > w.bufferSize) {
-			_, _, _, height := w.GetInnerRect()
-			// Increment the bufferIndex by half the buffer size
-			// If that would carry us past the end of the buffer,
-			// then set the index to the last chunk of the buffer
-			newIndex := min(
-				(w.bufferIndex + w.bufferSize),  // Incremented buffer value
-				(len(w.content) - w.bufferSize), // Last chunk of the buffer
-			)
-
-			// What line in the new buffer are we going to scroll to
-			//scrollTarget := (newIndex - w.bufferIndex) + height
-			w.bufferIndex = newIndex - height
-
-			setScrollBuffer(w, 0)
-		}
+		t.scrollUp(w)
 	case tview.MouseScrollDown:
-		if w.bufferIndex > 0 {
-			// We're scrolling
-
-		}
-		_, _, _, height := w.GetInnerRect()
-		rowIndex := row - height
-		if rowIndex >= 0 {
-			if w.bufferIndex > 0 {
-				// We're scrolling
-				newIndex := min(
-					0,                              // bottom of the buffer
-					w.bufferIndex-(w.bufferSize/2), // decrement by half the buffer size
-				)
-				scrollTarget := w.bufferIndex - newIndex
-				w.bufferIndex = newIndex
-				setScrollBuffer(w, scrollTarget)
-			}
-		}
+		t.scrollDown(w)
 	}
 }
 
@@ -200,11 +166,14 @@ func (t *TUI) AddWindow(name string, win Window) {
 			t.app.Draw()
 		})
 		wr := tview.ANSIWriter(nw)
-		w = &window{nw, wr, make([]string, 0), 0, 500}
+		w = &window{
+			TextView: nw,
+			writer:   wr,
+			content:  "",
+		}
 		if win.Scrollable {
-			w.bufferSize = win.MaxLines
 			nw.SetMouseCapture(func(action tview.MouseAction, event *tcell.EventMouse) (tview.MouseAction, *tcell.EventMouse) {
-				scroll(w, action, event)
+				t.scroll(w, action, event)
 				return action, event
 			})
 		}
@@ -237,7 +206,7 @@ func (t *TUI) handleInput(key tcell.Key) {
 func (t *TUI) Show(name string, text string) {
 	t.dataReady = true
 	if w, ok := t.windows[name]; ok {
-		w.content = append(w.content, strings.Split(text, "\n")...)
+		w.content += text
 		t.windows[name].writer.Write([]byte(text))
 	}
 }
