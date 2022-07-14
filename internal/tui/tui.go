@@ -153,6 +153,7 @@ func (t *TUI) AddWindow(name string, win plugin.Window) {
 		nw.SetDynamicColors(true)
 		nw.SetMaxLines(win.MaxLines)
 		nw.SetWordWrap(false)
+		nw.SetRegions(false)
 		nw.SetChangedFunc(func() {
 			t.app.Draw()
 		})
