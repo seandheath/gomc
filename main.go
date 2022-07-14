@@ -31,7 +31,7 @@ import (
 	"github.com/seandheath/go-mud-client/plugins/nodeka"
 )
 
-var profile = false
+var profile = true
 
 func main() {
 	if profile {

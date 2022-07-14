@@ -40,7 +40,7 @@ var mainWindow = plugin.Window{
 	MinGridWidth:  0,
 	Border:        false,
 	Scrollable:    true,
-	MaxLines:      200,
+	MaxLines:      10000,
 }
 
 func NewTUI() *TUI {
@@ -57,13 +57,14 @@ func NewTUI() *TUI {
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			switch event.Key() {
 			case tcell.KeyESC:
-				tui.scrollToEnd(tui.windows["main"])
+				tui.windows["main"].ScrollToEnd()
+				//tui.scrollToEnd(tui.windows["main"])
 			case tcell.KeyPgUp:
 				tui.app.SetFocus(tui.windows["main"])
-				tui.scrollUp(tui.windows["main"])
+				//tui.scrollUp(tui.windows["main"])
 			case tcell.KeyPgDn:
 				tui.app.SetFocus(tui.windows["main"])
-				tui.scrollDown(tui.windows["main"])
+				//tui.scrollDown(tui.windows["main"])
 			case tcell.KeyUp:
 				if len(tui.inputHistory) > 0 {
 					tui.historyIndex += 1
@@ -151,6 +152,7 @@ func (t *TUI) AddWindow(name string, win plugin.Window) {
 		nw.SetScrollable(win.Scrollable)
 		nw.SetDynamicColors(true)
 		nw.SetMaxLines(win.MaxLines)
+		nw.SetWordWrap(false)
 		nw.SetChangedFunc(func() {
 			t.app.Draw()
 		})
@@ -160,12 +162,12 @@ func (t *TUI) AddWindow(name string, win plugin.Window) {
 			writer:   wr,
 			content:  "",
 		}
-		if win.Scrollable {
-			nw.SetMouseCapture(func(action tview.MouseAction, event *tcell.EventMouse) (tview.MouseAction, *tcell.EventMouse) {
-				t.scroll(w, action, event)
-				return action, event
-			})
-		}
+		//if win.Scrollable {
+		//nw.SetMouseCapture(func(action tview.MouseAction, event *tcell.EventMouse) (tview.MouseAction, *tcell.EventMouse) {
+		//t.scroll(w, action, event)
+		//return action, event
+		//})
+		//}
 		t.windows[name] = w
 	}
 	t.grid.AddItem(w,

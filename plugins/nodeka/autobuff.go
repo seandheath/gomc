@@ -39,7 +39,7 @@ func initAutobuff() *plugin.Config {
 
 	b, err := os.ReadFile("plugins/nodeka/abilities.yaml")
 	if err != nil {
-		C.LogError.Println(err)
+		fmt.Println(err)
 	}
 	ab := Abilities{}
 

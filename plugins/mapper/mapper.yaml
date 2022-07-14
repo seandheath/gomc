@@ -5,5 +5,5 @@ actions:
   # as well as capturing relevant information like the new room name
   # and exits. These will be specific to each MUD - I've designed this
   # mapper to work for Nodeka as an example.
-  '^(.+) \[ exits: (north)? ?(east)? ?(south)? ?(west)? ?(up)? ?(down)? \]$': '#func Exits'
-  '^\[Reply:': '#func MoveDone' # This is my normal prompt which is always printed after showing room contents
+  '^(?P<name>.+) \[ exits: (?P<exits>(north)? ?(east)? ?(south)? ?(west)? ?(up)? ?(down)?) ?\]$': '#func moveHappening'
+  '^\[Reply:': '#func moveDone' # This is my normal prompt which is always printed after showing room contents

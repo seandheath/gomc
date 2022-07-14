@@ -10,7 +10,7 @@ func addCommands(c *client.Client, m *Map) {
 	C.AddAlias("#map na (.+)$", m.NewAreaCmd)
 	C.AddAlias("#map new room (n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
 	C.AddAlias("#map nr (n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
-	C.AddAlias("^(n|north|e|east|s|south|w|west|u|up|d|down|lo|loo|look|map)$", m.CaptureMoveCmd)
+	C.AddAlias("^(n|north|e|east|s|south|w|west|u|up|d|down|lo|loo|look|map|rec|reca|recal|recall)$", m.CaptureMoveCmd)
 	C.AddAlias("^([neswud]+)$", m.CaptureMovesCmd)
 }
 
@@ -30,7 +30,9 @@ func (m *Map) NewRoomCmd(t *trigger.Trigger) {
 
 func (m *Map) CaptureMoveCmd(t *trigger.Trigger) {
 	if dir, ok := dirmap[t.Matches[1]]; ok {
-		m.queueMove(dir)
+		m.moveStart(dir)
+	} else {
+		// could be recall or look?
 	}
 	// Pass the move command to the MUD
 	C.SendNow(t.Matches[1])

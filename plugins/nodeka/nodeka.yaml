@@ -30,7 +30,7 @@ windows:
     col: 0
     rowspan: 2
     colspan: 1
-    maxlines: 200
+    maxlines: 10000
     scrollable: true
   status:
     row: 1

@@ -2,9 +2,7 @@ package client
 
 import (
 	"fmt"
-	"log"
 	"net"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,16 +17,17 @@ const BUFFERSIZE = 1024
 type Client struct {
 	conn      net.Conn
 	buffer    []byte
-	Gag       bool
-	RawLine   string
-	TextLine  string
-	LogError  *log.Logger
-	LogInfo   *log.Logger
 	actions   []trigger.Trigger
 	aliases   []trigger.Trigger
 	functions map[string]trigger.Func
 	plugins   map[string]*plugin.Config
 	tui       *tui.TUI
+
+	// Publicly available variables
+	Gag      bool
+	RawLine  string
+	TextLine string
+	Var      map[string]string
 }
 
 func NewClient() *Client {
@@ -38,8 +37,6 @@ func NewClient() *Client {
 	c.Gag = false
 	c.RawLine = "raw"
 	c.TextLine = "text"
-	c.LogError = log.New(os.Stderr, "Error: ", log.Ldate|log.Ltime|log.Lshortfile)
-	c.LogInfo = log.New(os.Stderr, "Info: ", log.Ldate|log.Ltime|log.Lshortfile)
 	c.actions = []trigger.Trigger{}
 	c.aliases = []trigger.Trigger{}
 	c.functions = map[string]trigger.Func{}
