@@ -5,25 +5,25 @@ import (
 	"log"
 	"time"
 
+	"code.rocketnine.space/tslocum/cview"
 	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"github.com/seandheath/go-mud-client/pkg/plugin"
 )
 
 const SLEEP_INTERVAL = time.Millisecond * 10
 
 type window struct {
-	*tview.TextView
+	*cview.TextView
 	writer    io.Writer
 	content   string
 	scrolling bool
 }
 
 type TUI struct {
-	app              *tview.Application
-	grid             *tview.Grid
+	app              *cview.Application
+	grid             *cview.Grid
 	windows          map[string]*window
-	input            *tview.InputField
+	input            *cview.InputField
 	inputHistory     []string
 	inputHighlighted bool
 	historyIndex     int
@@ -46,99 +46,58 @@ var mainWindow = plugin.Window{
 func NewTUI() *TUI {
 	tui := &TUI{}
 	tui.windows = make(map[string]*window)
-	tui.grid = tview.NewGrid()
-	tui.input = tview.NewInputField().
-		SetDoneFunc(tui.handleInput).
-		SetFieldBackgroundColor(tcell.ColorBlack)
+	tui.grid = cview.NewGrid()
+	tui.input = cview.NewInputField()
+	tui.input.SetDoneFunc(tui.handleInput)
+	tui.input.SetFieldBackgroundColor(tcell.ColorBlack)
 	tui.inputHistory = []string{""}
 
-	tui.app = tview.NewApplication().
-		EnableMouse(true).
-		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-			switch event.Key() {
-			case tcell.KeyESC:
-				tui.windows["main"].ScrollToEnd()
-				//tui.scrollToEnd(tui.windows["main"])
-			case tcell.KeyPgUp:
-				tui.app.SetFocus(tui.windows["main"])
-				//tui.scrollUp(tui.windows["main"])
-			case tcell.KeyPgDn:
-				tui.app.SetFocus(tui.windows["main"])
-				//tui.scrollDown(tui.windows["main"])
-			case tcell.KeyUp:
-				if len(tui.inputHistory) > 0 {
-					tui.historyIndex += 1
-					if tui.historyIndex > len(tui.inputHistory) {
-						tui.historyIndex = len(tui.inputHistory)
-					}
-					tui.input.SetText(tui.inputHistory[len(tui.inputHistory)-tui.historyIndex])
+	tui.app = cview.NewApplication()
+	tui.app.EnableMouse(true)
+	tui.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyESC:
+			tui.windows["main"].ScrollToEnd()
+			//tui.scrollToEnd(tui.windows["main"])
+		case tcell.KeyPgUp:
+			tui.app.SetFocus(tui.windows["main"])
+			//tui.scrollUp(tui.windows["main"])
+		case tcell.KeyPgDn:
+			tui.app.SetFocus(tui.windows["main"])
+			//tui.scrollDown(tui.windows["main"])
+		case tcell.KeyUp:
+			if len(tui.inputHistory) > 0 {
+				tui.historyIndex += 1
+				if tui.historyIndex > len(tui.inputHistory) {
+					tui.historyIndex = len(tui.inputHistory)
 				}
-			case tcell.KeyDown:
-				tui.historyIndex -= 1
-				if tui.historyIndex <= 0 {
-					tui.historyIndex = 0
-					tui.input.SetText("")
-				} else {
-					tui.input.SetText(tui.inputHistory[len(tui.inputHistory)-tui.historyIndex])
-				}
-			case tcell.KeyEnter:
-				tui.app.SetFocus(tui.input)
-			default:
-				if tui.inputHighlighted {
-					tui.inputHighlighted = false
-					tui.input.SetText("")
-				}
-				tui.app.SetFocus(tui.input)
+				tui.input.SetText(tui.inputHistory[len(tui.inputHistory)-tui.historyIndex])
 			}
-			return event
-		})
+		case tcell.KeyDown:
+			tui.historyIndex -= 1
+			if tui.historyIndex <= 0 {
+				tui.historyIndex = 0
+				tui.input.SetText("")
+			} else {
+				tui.input.SetText(tui.inputHistory[len(tui.inputHistory)-tui.historyIndex])
+			}
+		case tcell.KeyEnter:
+			tui.app.SetFocus(tui.input)
+		default:
+			if tui.inputHighlighted {
+				tui.inputHighlighted = false
+				tui.input.SetText("")
+			}
+			tui.app.SetFocus(tui.input)
+		}
+		return event
+	})
 	// Default view just main window and input bar
 	tui.AddWindow("main", mainWindow)
-	tui.grid.AddItem(tui.input, 2, 0, 1, 1, 0, 0, true).
-		SetRows(0, 1)
+	tui.grid.AddItem(tui.input, 2, 0, 1, 1, 0, 0, true)
+	tui.grid.SetRows(0, 1)
 
 	return tui
-}
-
-func (t *TUI) scrollToEnd(w *window) {
-	w.scrolling = false
-	_, _, _, height := w.GetInnerRect()
-	w.Clear()
-	w.SetMaxLines(height)
-	w.writer.Write([]byte(w.content))
-	//w.ScrollToEnd()
-}
-
-func (t *TUI) scrollUp(w *window) {
-	if !w.scrolling {
-		w.scrolling = true
-		w.Clear()
-		w.SetMaxLines(0)
-		w.writer.Write([]byte(w.content))
-		lines := w.GetOriginalLineCount()
-		w.ScrollTo(lines-1, 0)
-	}
-}
-func (t *TUI) scrollDown(w *window) {
-	if w.scrolling {
-		_, _, _, height := w.GetInnerRect()
-		row, _ := w.GetScrollOffset()
-		lc := w.GetOriginalLineCount()
-		if lc <= (row + height) {
-			// we're at the bottom
-			t.scrollToEnd(w)
-		}
-	}
-}
-
-func (t *TUI) scroll(w *window, action tview.MouseAction, event *tcell.EventMouse) {
-
-	switch action {
-	case tview.MouseScrollUp:
-		t.scrollUp(w)
-	case tview.MouseScrollDown:
-		t.scrollDown(w)
-	}
 }
 
 func (t *TUI) AddWindow(name string, win plugin.Window) {
@@ -147,7 +106,7 @@ func (t *TUI) AddWindow(name string, win plugin.Window) {
 		w = cw
 		t.grid.RemoveItem(w)
 	} else {
-		nw := tview.NewTextView()
+		nw := cview.NewTextView()
 		nw.SetBorder(win.Border)
 		nw.SetScrollable(win.Scrollable)
 		nw.SetDynamicColors(true)
@@ -157,18 +116,12 @@ func (t *TUI) AddWindow(name string, win plugin.Window) {
 		nw.SetChangedFunc(func() {
 			t.app.Draw()
 		})
-		wr := tview.ANSIWriter(nw)
+		wr := cview.ANSIWriter(nw)
 		w = &window{
 			TextView: nw,
 			writer:   wr,
 			content:  "",
 		}
-		//if win.Scrollable {
-		//nw.SetMouseCapture(func(action tview.MouseAction, event *tcell.EventMouse) (tview.MouseAction, *tcell.EventMouse) {
-		//t.scroll(w, action, event)
-		//return action, event
-		//})
-		//}
 		t.windows[name] = w
 	}
 	t.grid.AddItem(w,
@@ -226,7 +179,9 @@ func (t *TUI) FixInputLine(rows []int, cols []int) {
 }
 
 func (t *TUI) Run() {
-	if err := t.app.SetRoot(t.grid, true).SetFocus(t.input).Run(); err != nil {
+	t.app.SetRoot(t.grid, true)
+	t.app.SetFocus(t.input)
+	if err := t.app.Run(); err != nil {
 		log.Fatal(err)
 	}
 }
