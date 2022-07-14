@@ -1,9 +1,3 @@
-# code.rocketnine.space/tslocum/cbind v0.1.5
-## explicit; go 1.15
-code.rocketnine.space/tslocum/cbind
-# code.rocketnine.space/tslocum/cview v1.5.7
-## explicit; go 1.12
-code.rocketnine.space/tslocum/cview
 # github.com/gdamore/encoding v1.0.0
 ## explicit; go 1.9
 github.com/gdamore/encoding
@@ -48,15 +42,13 @@ github.com/gdamore/tcell/v2/terminfo/x/xfce
 github.com/gdamore/tcell/v2/terminfo/x/xterm
 github.com/gdamore/tcell/v2/terminfo/x/xterm_kitty
 github.com/gdamore/tcell/v2/terminfo/x/xterm_termite
+github.com/gdamore/tcell/v2/views
 # github.com/lucasb-eyer/go-colorful v1.2.0
 ## explicit; go 1.12
 github.com/lucasb-eyer/go-colorful
 # github.com/mattn/go-runewidth v0.0.14-0.20210830053702-dc8fe66265af
 ## explicit; go 1.9
 github.com/mattn/go-runewidth
-# github.com/rivo/tview v0.0.0-20220709181631-73bf2902b59a
-## explicit; go 1.12
-github.com/rivo/tview
 # github.com/rivo/uniseg v0.2.0
 ## explicit; go 1.12
 github.com/rivo/uniseg

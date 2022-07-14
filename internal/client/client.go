@@ -41,8 +41,7 @@ func NewClient() *Client {
 	c.aliases = []trigger.Trigger{}
 	c.functions = map[string]trigger.Func{}
 	c.plugins = map[string]*plugin.Config{}
-	c.tui = tui.NewTUI()
-	c.tui.Parse = c.Parse
+	c.tui = tui.NewTUI(c.Parse)
 	c.cmdInit()
 	return c
 }
@@ -112,13 +111,10 @@ func (c *Client) LoadPlugin(name string, p *plugin.Config) {
 	for n, f := range p.Functions {
 		c.AddFunction(n, f)
 	}
-	for n, win := range p.Windows {
-		c.tui.AddWindow(n, win)
+	for n, _ := range p.Windows {
+		c.tui.AddWindow(n)
 	}
 
-	if len(p.Windows) > 0 {
-		c.tui.FixInputLine(p.Grid.Rows, p.Grid.Columns)
-	}
 	c.plugins[name] = p
 }
 
