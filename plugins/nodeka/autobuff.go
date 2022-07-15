@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/seandheath/go-mud-client/pkg/plugin"
-	"github.com/seandheath/go-mud-client/pkg/trigger"
+	"github.com/seandheath/gomc/pkg/plugin"
+	"github.com/seandheath/gomc/pkg/trigger"
 	"gopkg.in/yaml.v2"
 )
 

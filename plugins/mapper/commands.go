@@ -1,8 +1,8 @@
 package mapper
 
 import (
-	"github.com/seandheath/go-mud-client/internal/client"
-	"github.com/seandheath/go-mud-client/pkg/trigger"
+	"github.com/seandheath/gomc/internal/client"
+	"github.com/seandheath/gomc/pkg/trigger"
 )
 
 func addCommands(c *client.Client, m *Map) {

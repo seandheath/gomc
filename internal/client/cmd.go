@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/seandheath/go-mud-client/pkg/trigger"
+	"github.com/seandheath/gomc/pkg/trigger"
 )
 
 func (c *Client) cmdInit() {

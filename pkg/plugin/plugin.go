@@ -3,7 +3,7 @@ package plugin
 import (
 	"os"
 
-	"github.com/seandheath/go-mud-client/pkg/trigger"
+	"github.com/seandheath/gomc/pkg/trigger"
 	"gopkg.in/yaml.v2"
 )
 

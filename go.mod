@@ -1,4 +1,4 @@
-module github.com/seandheath/go-mud-client
+module github.com/seandheath/gomc
 
 go 1.18
 

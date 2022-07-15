@@ -3,7 +3,7 @@ package nodeka
 import (
 	"strings"
 
-	"github.com/seandheath/go-mud-client/pkg/trigger"
+	"github.com/seandheath/gomc/pkg/trigger"
 )
 
 const OSIZE = 15

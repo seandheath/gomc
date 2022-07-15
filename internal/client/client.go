@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/seandheath/go-mud-client/internal/tui"
-	"github.com/seandheath/go-mud-client/pkg/plugin"
-	"github.com/seandheath/go-mud-client/pkg/trigger"
+	"github.com/seandheath/gomc/internal/tui"
+	"github.com/seandheath/gomc/pkg/plugin"
+	"github.com/seandheath/gomc/pkg/trigger"
 )
 
 const BUFFERSIZE = 1024

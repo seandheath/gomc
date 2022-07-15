@@ -27,7 +27,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	"github.com/seandheath/go-mud-client/internal/client"
+	"github.com/seandheath/gomc/internal/client"
 )
 
 var profile = true

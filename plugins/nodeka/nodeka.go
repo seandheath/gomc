@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/seandheath/go-mud-client/internal/client"
-	"github.com/seandheath/go-mud-client/pkg/plugin"
-	"github.com/seandheath/go-mud-client/pkg/trigger"
+	"github.com/seandheath/gomc/internal/client"
+	"github.com/seandheath/gomc/pkg/plugin"
+	"github.com/seandheath/gomc/pkg/trigger"
 )
 
 var Config *plugin.Config
