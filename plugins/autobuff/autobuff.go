@@ -2,6 +2,7 @@ package autobuff
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/seandheath/gomc/internal/client"
@@ -44,7 +45,7 @@ func Initialize(c *client.Client, file string) *plugin.Config {
 
 	b, err := os.ReadFile("plugins/autobuff/abilities.yaml")
 	if err != nil {
-		Client.LogError.Println(err)
+		log.Fatal("Failed to load: " + file)
 	}
 	ab := Abilities{}
 
@@ -70,8 +71,8 @@ func Initialize(c *client.Client, file string) *plugin.Config {
 	return Config
 }
 
-var BuffUp trigger.Func = func(t *trigger.Match) {
-	if name, ok := activations[t.Trigger.Re.String()]; ok { // Get the buff name from the activation string map
+var BuffUp trigger.Func = func(t *trigger.Trigger) {
+	if name, ok := activations[t.String()]; ok { // Get the buff name from the activation string map
 		if buff, ok := abilities[name]; ok { // Get the buff from our buff list
 			buff.IsActive = true // Set it to active
 			if buff.Prevention != "" {
@@ -82,20 +83,20 @@ var BuffUp trigger.Func = func(t *trigger.Match) {
 }
 
 // BuffDown handles when a buff drops, preparing it to be cast again.
-var BuffDown trigger.Func = func(t *trigger.Match) {
+var BuffDown trigger.Func = func(t *trigger.Trigger) {
 	if buff, ok := abilities[t.Matches[1]]; ok {
 		buff.IsActive = false
 	}
 }
 
-var PreventUsed trigger.Func = func(t *trigger.Match) {
+var PreventUsed trigger.Func = func(t *trigger.Trigger) {
 	activePreventions[t.Matches[1]] = true
 }
 
-var PreventAvailable trigger.Func = func(t *trigger.Match) {
+var PreventAvailable trigger.Func = func(t *trigger.Trigger) {
 	activePreventions[t.Matches[1]] = false
 }
-var CheckBuffs trigger.Func = func(t *trigger.Match) {
+var CheckBuffs trigger.Func = func(t *trigger.Trigger) {
 	for name, buff := range abilities {
 		if !buff.IsActive && !isPrevented(buff) {
 			DoBuff(name, buff)

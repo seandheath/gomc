@@ -111,8 +111,8 @@ func (c *Client) LoadPlugin(name string, p *plugin.Config) {
 	for n, f := range p.Functions {
 		c.AddFunction(n, f)
 	}
-	for n, _ := range p.Windows {
-		c.tui.AddWindow(n)
+	for n, w := range p.Windows {
+		c.tui.AddWindow(n, w)
 	}
 
 	c.plugins[name] = p
