@@ -54,16 +54,18 @@ func NewTUI(parse func(string)) *TUI {
 
 	tui.app = cview.NewApplication()
 	tui.app.EnableMouse(true)
-	tui.app.SetAfterResizeFunc(func(w int, h int) {
-		for _, w := range tui.windows {
-			if w.scrollable {
-				resizeWindow(w)
-			}
-		}
-	})
+	//tui.app.SetAfterResizeFunc(func(w int, h int) {
+	//for _, w := range tui.windows {
+	//if w.scrollable {
+	//resizeWindow(w)
+	//}
+	//}
+	//resizeWindow(tui.windows["main"])
+	//})
 	tui.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyESC:
+			tui.app.SetFocus(tui.windows["main"])
 			tui.scroll("end", tui.windows["main"])
 		case tcell.KeyPgUp:
 			tui.app.SetFocus(tui.windows["main"])
@@ -119,7 +121,6 @@ func resizeWindow(w *window) {
 	if !w.scrolling {
 		_, _, _, h := w.GetInnerRect()
 		w.SetMaxLines(h)
-		//w.SetBytes(w.content)
 	}
 }
 
@@ -161,6 +162,8 @@ func (t *TUI) scroll(direction string, w *window) {
 				_, _, _, h := w.GetInnerRect() // height of the screen rect
 				w.SetMaxLines(h)
 				w.SetBytes(w.content)
+			} else {
+				resizeWindow(w)
 			}
 			w.scrolling = false
 		}

@@ -11,18 +11,18 @@ import (
 )
 
 func (c *Client) cmdInit() {
-	c.AddAlias("^#connect (.*)$", c.ConnectCmd)
-	c.AddAlias("^#capture ?(.*)$", c.CaptureCmd)
-	c.AddAlias("^#func (.*)$", c.FuncCmd)
-	c.AddAlias("^#match (.+)$", c.MatchCmd)
-	c.AddAlias("^#(\\d+) (.+)$", c.LoopCmd)
-	c.AddAlias("^#action$", c.BaseActionCmd)
-	c.AddAlias("^#action {(.+)}{(.+)}$", c.AddActionCmd)
-	c.AddAlias("^#unaction (\\d+)$", c.UnactionCmd)
-	c.AddAlias("^#alias$", c.BaseAliasCmd)
-	c.AddAlias("^#alias {(.+)}{(.+)}$", c.AddAliasCmd)
-	c.AddAlias("^#unalias (\\d+)$", c.UnaliasCmd)
-	c.AddAlias("^#memstats$", c.MemStatsCmd)
+	c.AddAliasFunc("^#connect (.*)$", c.ConnectCmd)
+	c.AddAliasFunc("^#capture ?(.*)$", c.CaptureCmd)
+	c.AddAliasFunc("^#func (.*)$", c.FuncCmd)
+	c.AddAliasFunc("^#match (.+)$", c.MatchCmd)
+	c.AddAliasFunc("^#(\\d+) (.+)$", c.LoopCmd)
+	c.AddAliasFunc("^#action$", c.BaseActionCmd)
+	c.AddAliasFunc("^#action {(.+)}{(.+)}$", c.AddActionCmd)
+	c.AddAliasFunc("^#unaction (\\d+)$", c.UnactionCmd)
+	c.AddAliasFunc("^#alias$", c.BaseAliasCmd)
+	c.AddAliasFunc("^#alias {(.+)}{(.+)}$", c.AddAliasCmd)
+	c.AddAliasFunc("^#unalias (\\d+)$", c.UnaliasCmd)
+	c.AddAliasFunc("^#memstats$", c.MemStatsCmd)
 }
 
 func (c *Client) CaptureCmd(t *trigger.Trigger) {
@@ -53,11 +53,12 @@ func (c *Client) MatchCmd(t *trigger.Trigger) {
 // Nested triggers overwrite matches... need to pass into the function
 func (c *Client) LoopCmd(t *trigger.Trigger) {
 	n, err := strconv.Atoi(t.Matches[1])
+	cmd := t.Matches[2]
 	if err != nil {
 		c.Print("Error parsing loop number: " + err.Error() + "\n")
 	}
 	for i := 0; i < n; i++ {
-		c.Parse(t.Matches[2])
+		c.Parse(cmd)
 	}
 }
 

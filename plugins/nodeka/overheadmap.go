@@ -8,10 +8,10 @@ import (
 const OSIZE = 15
 
 func initOmap() {
-	C.AddAction("^[ vi`~!@#$%^&*()-_=+\\[\\]{};:'\",.<>\\?|\\/]{36,37}$", MapLine)
-	C.AddAction("^$", EmptyLine)
-	C.AddAction("\\[ exits: ", ExitLine)
-	C.AddAction(`^\[Reply:`, ReplyLine)
+	C.AddActionFunc("^[ vi`~!@#$%^&*()-_=+\\[\\]{};:'\",.<>\\?|\\/]{36,37}$", MapLine)
+	C.AddActionFunc("^$", EmptyLine)
+	C.AddActionFunc("\\[ exits: ", ExitLine)
+	C.AddActionFunc(`^\[Reply:`, ReplyLine)
 }
 
 var inMap = false

@@ -6,12 +6,12 @@ import (
 )
 
 func addCommands(c *client.Client, m *Map) {
-	C.AddAlias("#map new area (.+)$", m.NewAreaCmd)
-	C.AddAlias("#map na (.+)$", m.NewAreaCmd)
-	C.AddAlias("#map new room (n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
-	C.AddAlias("#map nr (n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
-	C.AddAlias("^(n|north|e|east|s|south|w|west|u|up|d|down|lo|loo|look|map|rec|reca|recal|recall)$", m.CaptureMoveCmd)
-	C.AddAlias("^([neswud]+)$", m.CaptureMovesCmd)
+	C.AddAliasFunc("#map new area (.+)$", m.NewAreaCmd)
+	C.AddAliasFunc("#map na (.+)$", m.NewAreaCmd)
+	C.AddAliasFunc("#map new room (n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
+	C.AddAliasFunc("#map nr (n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
+	C.AddAliasFunc("^(n|north|e|east|s|south|w|west|u|up|d|down|lo|loo|look|map|rec|reca|recal|recall)$", m.CaptureMoveCmd)
+	C.AddAliasFunc("^([neswud]+)$", m.CaptureMovesCmd)
 }
 
 func (m *Map) NewAreaCmd(t *trigger.Trigger) {

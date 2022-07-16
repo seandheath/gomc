@@ -3,7 +3,6 @@ package client
 import (
 	"fmt"
 	"net"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -20,8 +19,8 @@ type Client struct {
 	timeout       time.Time
 	printBuffer   []byte
 	processBuffer []byte
-	actions       []trigger.Trigger
-	aliases       []trigger.Trigger
+	actions       []*trigger.Trigger
+	aliases       []*trigger.Trigger
 	functions     map[string]trigger.Func
 	plugins       map[string]*plugin.Config
 	tui           *tui.TUI
@@ -37,8 +36,8 @@ func NewClient() *Client {
 	c := &Client{}
 	c.conn = nil
 	c.Gag = false
-	c.actions = []trigger.Trigger{}
-	c.aliases = []trigger.Trigger{}
+	c.actions = make([]*trigger.Trigger, 0)
+	c.aliases = make([]*trigger.Trigger, 0)
 	c.functions = map[string]trigger.Func{}
 	c.plugins = map[string]*plugin.Config{}
 	c.tui = tui.NewTUI(c.Parse)
@@ -46,13 +45,31 @@ func NewClient() *Client {
 	return c
 }
 
-func (c *Client) AddAction(rs string, cmd trigger.Func) { c.actions = c.addTrigger(c.actions, rs, cmd) }
-func (c *Client) AddActionString(rs string, cmd string) {
-	c.actions = c.addTriggerString(c.actions, rs, cmd)
+func (c *Client) AddAction(t *trigger.Trigger) {
+	c.actions = c.addTrigger(c.actions, t)
 }
-func (c *Client) AddAlias(rs string, cmd trigger.Func) { c.aliases = c.addTrigger(c.aliases, rs, cmd) }
-func (c *Client) AddAliasString(rs string, cmd string) {
-	c.aliases = c.addTriggerString(c.aliases, rs, cmd)
+func (c *Client) AddActionFunc(rs string, cmd trigger.Func) *trigger.Trigger {
+	t := trigger.NewTrigger(rs, cmd)
+	c.actions = c.addTrigger(c.actions, t)
+	return t
+}
+func (c *Client) AddActionString(rs string, cmd string) *trigger.Trigger {
+	t := trigger.NewTrigger(rs, func(t *trigger.Trigger) { c.Parse(cmd) })
+	c.actions = c.addTrigger(c.actions, t)
+	return t
+}
+func (c *Client) AddAlias(t *trigger.Trigger) {
+	c.aliases = c.addTrigger(c.aliases, t)
+}
+func (c *Client) AddAliasFunc(rs string, cmd trigger.Func) *trigger.Trigger {
+	t := trigger.NewTrigger(rs, cmd)
+	c.aliases = c.addTrigger(c.aliases, t)
+	return t
+}
+func (c *Client) AddAliasString(rs string, cmd string) *trigger.Trigger {
+	t := trigger.NewTrigger(rs, func(t *trigger.Trigger) { c.Parse(cmd) })
+	c.aliases = c.addTrigger(c.aliases, t)
+	return t
 }
 
 // Parse the string and send the result to the server
@@ -124,30 +141,25 @@ func (c *Client) LoadPlugin(name string, p *plugin.Config) {
 	c.plugins[name] = p
 }
 
-func (c *Client) CheckTriggers(list []trigger.Trigger, text string) bool {
+func (c *Client) CheckTriggers(list []*trigger.Trigger, text string) bool {
 	matched := false
 	for _, t := range list {
-		t.Matches = t.FindStringSubmatch(string(text))
-		if len(t.Matches) > 0 {
-			matched = true
-			if len(t.SubexpNames()) > 0 {
-				for i, m := range t.Matches {
-					if i > 0 {
-						t.Results[t.SubexpNames()[i]] = m
+		if t.Enabled {
+			t.Matches = t.FindStringSubmatch(string(text))
+			if len(t.Matches) > 0 {
+				matched = true
+				if len(t.SubexpNames()) > 0 {
+					for i, m := range t.Matches {
+						if i > 0 {
+							t.Results[t.SubexpNames()[i]] = m
+						}
 					}
 				}
+				t.Cmd(t)
 			}
-			t.Cmd(&t)
 		}
 	}
 	return matched
-}
-
-func (c *Client) addTriggerString(list []trigger.Trigger, rs string, cmd string) []trigger.Trigger {
-	f := func(t *trigger.Trigger) {
-		c.Parse(cmd)
-	}
-	return c.addTrigger(list, rs, f)
 }
 
 func (c *Client) getFunc(cmd string) trigger.Func {
@@ -155,18 +167,9 @@ func (c *Client) getFunc(cmd string) trigger.Func {
 	return nil
 }
 
-// This function adds a trigger to the provided list and returns it
-func (c *Client) addTrigger(list []trigger.Trigger, rs string, cmd trigger.Func) []trigger.Trigger {
-	re, err := regexp.Compile(rs)
-	if err != nil {
-		c.Print("Error compiling trigger: " + err.Error() + "\n")
-		return list
-	}
-	return append(list, trigger.Trigger{
-		Regexp:  re,
-		Cmd:     cmd,
-		Results: map[string]string{},
-	})
+// This function adds a trigger to the provided list and returns the new trigger
+func (c *Client) addTrigger(list []*trigger.Trigger, t *trigger.Trigger) []*trigger.Trigger {
+	return append(list, t)
 }
 
 func (c *Client) BaseActionCmd(t *trigger.Trigger) {
@@ -193,7 +196,7 @@ func (c *Client) UnaliasCmd(t *trigger.Trigger) {
 	c.aliases = c.untrigger(c.aliases, "alias", t.Matches[1])
 }
 
-func (c *Client) showtriggers(t []trigger.Trigger, ttype string) {
+func (c *Client) showtriggers(t []*trigger.Trigger, ttype string) {
 	c.Print("## Current " + ttype + ":\n")
 	for i, a := range t {
 		c.Print(fmt.Sprintf("\n[%d]: %s", i, a.String()))
@@ -201,7 +204,7 @@ func (c *Client) showtriggers(t []trigger.Trigger, ttype string) {
 	c.Print("\n")
 }
 
-func (c *Client) untrigger(triggerList []trigger.Trigger, triggerType string, index string) []trigger.Trigger {
+func (c *Client) untrigger(triggerList []*trigger.Trigger, triggerType string, index string) []*trigger.Trigger {
 	n, err := strconv.Atoi(index)
 	if err != nil {
 		c.Print(fmt.Sprintf("Invalid %s number: %d\n", triggerType, n))

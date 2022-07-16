@@ -11,6 +11,8 @@ import (
 
 var Config *plugin.Config
 var C *client.Client
+var ReplyQ *trigger.Queue
+var DeadQ *trigger.Queue
 
 func Init(c *client.Client, file string) *plugin.Config {
 	C = c
@@ -21,12 +23,18 @@ func Init(c *client.Client, file string) *plugin.Config {
 	}
 
 	initOmap()
+	initFootpad()
+	ReplyQ = trigger.NewQueue(`^\[Reply:`)
+	DeadQ = trigger.NewQueue(`is dead!$`)
+	C.AddAction(ReplyQ.Trigger)
+	C.AddAction(DeadQ.Trigger)
+
 	abc := initAutobuff()
 	Config = plugin.Merge(cfg, abc)
 
 	// Sum damage up and show it at the beginning of the line
-	C.AddAction(`(\[ (?P<landed>\d+) of (?P<total>\d+) \].+)?(tickl|graz|scratch|bruis|sting|wound|shend|scath|pummel|pummell|batter|splinter|disfigur|fractur|lacerat|RUPTUR|MUTILAT|DEHISC|MAIM|DISMEMBER|SUNDER|CREMAT|EVISCERAT|RAVAG|IMMOLAT|LIQUIFY|LIQUIFI|VAPORIZ|ATOMIZ|OBLITERAT|ETHEREALIZ|ERADICAT)(s|S|e|E|es|ES|ed|ED|ing|ING)? \((?P<damage>\d+)\) `, DamageLine)
-	C.AddAction(`^The closed (?P<door>.+) block\(s\) your passage (?P<direction>.+)\.$`, OpenDoor)
+	C.AddAction(trigger.NewTrigger(`(\[ (?P<landed>\d+) of (?P<total>\d+) \].+)?(tickl|graz|scratch|bruis|sting|wound|shend|scath|pummel|pummell|batter|splinter|disfigur|fractur|lacerat|RUPTUR|MUTILAT|DEHISC|MAIM|DISMEMBER|SUNDER|CREMAT|EVISCERAT|RAVAG|IMMOLAT|LIQUIFY|LIQUIFI|VAPORIZ|ATOMIZ|OBLITERAT|ETHEREALIZ|ERADICAT)(s|S|e|E|es|ES|ed|ED|ing|ING)? \((?P<damage>\d+)\) `, DamageLine))
+	C.AddAction(trigger.NewTrigger(`^The closed (?P<door>.+) block\(s\) your passage (?P<direction>.+)\.$`, OpenDoor))
 
 	return Config
 }

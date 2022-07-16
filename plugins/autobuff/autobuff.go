@@ -60,14 +60,14 @@ func Initialize(c *client.Client, file string) *plugin.Config {
 	// Also map the activation strings to the buff names
 	for name, buff := range abilities {
 		for _, activation := range buff.Activation {
-			activations[activation] = name       // Map the activation string
-			Client.AddAction(activation, BuffUp) // Create the action
+			activations[activation] = name           // Map the activation string
+			Client.AddActionFunc(activation, BuffUp) // Create the action
 		}
 	}
-	Client.AddAction("^You are no longer affected by: (.+)\\.$", BuffDown)
-	Client.AddAction("^You cannot perform (.+) abilities again yet", PreventUsed)
-	Client.AddAction("^You may again perform (.+) abilities", PreventAvailable)
-	Client.AddAlias("^spel$", CheckBuffs)
+	Client.AddActionFunc("^You are no longer affected by: (.+)\\.$", BuffDown)
+	Client.AddActionFunc("^You cannot perform (.+) abilities again yet", PreventUsed)
+	Client.AddActionFunc("^You may again perform (.+) abilities", PreventAvailable)
+	Client.AddAliasFunc("^spel$", CheckBuffs)
 	return Config
 }
 

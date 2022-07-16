@@ -3,6 +3,7 @@ actions:
   # Capture Actions
   '^.+ says, ''': '#capture' 
   'tells you,': '#capture'
+  '^You tell': '#capture'
   '^You say, ''.+': '#capture' 
   '^< (emote|social) >': '#capture'
   '^\[ (>>>|<>|Group|Expert|Immort|OOC|Virtue|newbie|debate|gossip|trivia|sing|shout|yell|auction)': '#capture'
