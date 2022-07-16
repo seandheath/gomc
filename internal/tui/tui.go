@@ -89,10 +89,19 @@ func NewTUI(parse func(string)) *TUI {
 			}
 		case tcell.KeyEnter:
 			tui.app.SetFocus(tui.input)
-		default:
+		case tcell.KeyDEL, tcell.KeyBackspace:
 			if tui.inputHighlighted {
 				tui.inputHighlighted = false
 				tui.input.SetText("")
+			}
+			tui.app.SetFocus(tui.input)
+		case tcell.KeyRune:
+			if tui.inputHighlighted {
+				tui.inputHighlighted = false
+				tui.input.SetText("")
+			}
+			if !tui.input.HasFocus() {
+				tui.input.SetText(tui.input.GetText() + string(event.Rune()))
 			}
 			tui.app.SetFocus(tui.input)
 		}
@@ -110,6 +119,7 @@ func resizeWindow(w *window) {
 	if !w.scrolling {
 		_, _, _, h := w.GetInnerRect()
 		w.SetMaxLines(h)
+		//w.SetBytes(w.content)
 	}
 }
 
@@ -128,11 +138,11 @@ func (t *TUI) scroll(direction string, w *window) {
 				// writes from being written to the window until we scroll back
 				// to the bottom
 				w.scrolling = true
-				w.Clear()
 				w.SetMaxLines(0)
 				w.SetBytes(w.content)
-				t.app.Draw(w)
-				w.ScrollToEnd() // This doesn't seem to be working...
+				//w.ScrollTo(trow, 0)
+				//t.app.Draw(w)
+				//w.ScrollToEnd() // This doesn't seem to be working...
 			}
 		case "down":
 			// Check if we're at the bottom
@@ -148,12 +158,11 @@ func (t *TUI) scroll(direction string, w *window) {
 			// We've got a bigger buffer than the height of the screen, so we
 			// need to scroll to the bottom
 			if w.scrolling {
-				w.scrolling = false
 				_, _, _, h := w.GetInnerRect() // height of the screen rect
-				w.Clear()
 				w.SetMaxLines(h)
-				w.Write(w.content)
+				w.SetBytes(w.content)
 			}
+			w.scrolling = false
 		}
 	}
 }

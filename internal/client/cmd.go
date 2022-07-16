@@ -32,7 +32,7 @@ func (c *Client) CaptureCmd(t *trigger.Trigger) {
 		c.PrintTo("omap", string(c.RawLine))
 		c.Gag = true
 	} else {
-		ts := time.Now().Format("2006:01:02 15:04:05")
+		ts := time.Now().Format("[2006:01:02 15:04:05] ")
 		c.PrintTo("chat", ts+string(c.RawLine))
 	}
 }
