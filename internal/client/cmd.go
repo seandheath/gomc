@@ -29,11 +29,11 @@ func (c *Client) CaptureCmd(t *trigger.Trigger) {
 	s := strings.TrimPrefix(t.Matches[0], "#capture ")
 
 	if s == "overhead" {
-		c.PrintTo("omap", c.RawLine)
+		c.PrintTo("omap", string(c.RawLine))
 		c.Gag = true
 	} else {
 		ts := time.Now().Format("2006:01:02 15:04:05")
-		c.PrintTo("chat", fmt.Sprintf("[%s] %s\n", ts, strings.TrimSuffix(c.RawLine, "\n")))
+		c.PrintTo("chat", ts+string(c.RawLine))
 	}
 }
 

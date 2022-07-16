@@ -1,15 +1,17 @@
 package client
 
 import (
-	"bufio"
+	"bytes"
 	"errors"
+	"io"
 	"net"
 	"os"
 	"regexp"
-	"strings"
 	"time"
 
+	"code.rocketnine.space/tslocum/cview"
 	"github.com/seandheath/gomc/pkg/trigger"
+	"github.com/seandheath/gomc/pkg/util"
 )
 
 const (
@@ -33,85 +35,68 @@ func (c *Client) ConnectCmd(t *trigger.Trigger) {
 		c.Print("Failed to connect: " + err.Error() + "\n")
 	}
 	c.conn = conn
-	s := bufio.NewScanner(c.conn)
-	s.Split(bufio.ScanLines)
+	w := cview.ANSIWriter(c)
 	go func() {
 		defer c.conn.Close()
-		newData := false
-		newLine := ""
-		last := ""
 		for {
-			lines, err := c.readLines(last)
-			last = ""
-			if errors.Is(err, os.ErrDeadlineExceeded) {
-				// Deadline exceeded, we have all the data
-				// Reset the deadline
-				c.conn.SetReadDeadline(time.Time{})
-				newData = false
-			} else if err != nil {
-				// Some other connection error
-				c.conn = nil
-				c.Print("Disconnected: " + err.Error())
-				return
-			} else {
-				// New data and deadline not exceeded
-				newData = true
-			}
-
-			// We have lines
-			if lines != nil {
-				// We got new data, no timeout yet, and we don't know if it's all the data
-				// We'll check the last string for a newline and pass it back to readlines to
-				// prepend the next round of data
-				if newData && !strings.HasSuffix(lines[len(lines)-1], "\n") {
-					last = lines[len(lines)-1]
-					lines = lines[:len(lines)-1]
+			if _, err := io.Copy(w, c.conn); err != nil {
+				if !errors.Is(err, os.ErrDeadlineExceeded) {
+					c.Print("Connection closed: " + err.Error() + "\n")
+					c.conn = nil
+				} else {
+					c.handleData(nil)
+					c.conn.SetReadDeadline(time.Time{})
 				}
-
-				// Reset our new line to print and handle all the lines
-				newLine = ""
-				for _, line := range lines {
-					newLine += c.handleLine(line)
-				}
-				if newLine != "" {
-					c.Print(newLine)
-				}
-			}
-
-			// We got data, set deadline and read again
-			if newData {
-				c.conn.SetReadDeadline(time.Now().Add(DEADLINE))
 			}
 		}
 	}()
 }
 
-func (c *Client) handleLine(line string) string {
-	c.RawLine = line
-	c.TextLine = strip(c.RawLine)
-	c.CheckTriggers(c.actions, strings.TrimSuffix(c.TextLine, "\n"))
-	if c.Gag {
-		c.Gag = false
-		return ""
-	}
-	return c.RawLine
+func (c *Client) Write(b []byte) (int, error) {
+	return c.handleData(b)
 }
-func (c *Client) readLines(last string) ([]string, error) {
+func (c *Client) handleData(b []byte) (int, error) {
+	c.processBuffer = append(c.processBuffer, b...)
 
-	n, err := c.conn.Read(c.buffer)
+	// If the last byte isn't a newline, set a deadline to prevent blocking
+	// and try and get some more data.
+	if len(b) > 0 {
+		if b[len(b)-1] != '\n' && b[len(b)-1] != '\r' {
 
-	// If something goes wrong kick it back
-	if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
-		return nil, err
+			// If the timeout isn't currently set, we'll set it for DEADLINE from
+			// now
+			if c.timeout.IsZero() {
+				c.timeout = time.Now().Add(DEADLINE)
+				c.conn.SetReadDeadline(c.timeout)
+			}
+
+			// If we haven't hit the deadline yet then try and read some more data
+			if time.Now().Before(c.timeout) {
+				return len(b), nil
+			}
+
+		}
 	}
-	lines := strings.Split(string(c.buffer[:n]), "\r")
-	lines[0] = last + lines[0]
 
-	// No data
-	return lines, err
-}
+	// We either have a newline at the end or we hit the timeout, so we can
+	// reset the deadline to just read until we get more data
+	c.timeout = time.Time{}
 
-func strip(str string) string {
-	// Remove ANSI codes and convert semicolons into colons to protect from trigger abuse
-	return strings.ReplaceAll(ansiRegexp.ReplaceAllString(str, ""), ";", ":")
+	for _, line := range bytes.Split(c.processBuffer, []byte("\r")) {
+		tline := util.TrimEnd(line)
+		c.RawLine = append(tline, '\n')
+		sline := cview.StripTags(tline, true, true)
+		c.TextLine = util.SwapSemi(sline)
+		c.CheckTriggers(c.actions, string(c.TextLine))
+		if c.Gag {
+			c.Gag = false
+		} else {
+
+			c.printBuffer = append(c.printBuffer, c.RawLine...)
+		}
+	}
+	c.PrintBytesTo("main", c.printBuffer)
+	c.processBuffer = nil
+	c.printBuffer = nil
+	return len(b), nil
 }

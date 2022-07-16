@@ -56,5 +56,6 @@ func DamageLine(t *trigger.Trigger) {
 		//}
 		td = l * d
 	}
-	C.RawLine = fmt.Sprintf("[ %d ] %s", td, C.RawLine)
+	// Add the damage string to the beginning of the line
+	C.RawLine = append([]byte(fmt.Sprintf("[ %d ] ", td)), C.RawLine...)
 }

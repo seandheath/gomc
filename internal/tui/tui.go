@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"io"
 	"log"
 	"time"
 
@@ -14,9 +13,9 @@ const SLEEP_INTERVAL = time.Millisecond * 10
 
 type window struct {
 	*cview.TextView
-	writer    io.Writer
-	content   string
-	scrolling bool
+	content    []byte
+	scrolling  bool
+	scrollable bool
 }
 
 type TUI struct {
@@ -27,12 +26,11 @@ type TUI struct {
 	inputHistory     []string
 	inputHighlighted bool
 	historyIndex     int
-	dataReady        bool
 	parse            func(string)
 }
 
 var mainWindow = plugin.Window{
-	Row:           1,
+	Row:           0,
 	Col:           0,
 	RowSpan:       1,
 	ColSpan:       1,
@@ -56,17 +54,23 @@ func NewTUI(parse func(string)) *TUI {
 
 	tui.app = cview.NewApplication()
 	tui.app.EnableMouse(true)
+	tui.app.SetAfterResizeFunc(func(w int, h int) {
+		for _, w := range tui.windows {
+			if w.scrollable {
+				resizeWindow(w)
+			}
+		}
+	})
 	tui.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyESC:
-			tui.windows["main"].ScrollToEnd()
-			//tui.scrollToEnd(tui.windows["main"])
+			tui.scroll("end", tui.windows["main"])
 		case tcell.KeyPgUp:
 			tui.app.SetFocus(tui.windows["main"])
-			//tui.scrollUp(tui.windows["main"])
+			tui.scroll("up", tui.windows["main"])
 		case tcell.KeyPgDn:
 			tui.app.SetFocus(tui.windows["main"])
-			//tui.scrollDown(tui.windows["main"])
+			tui.scroll("down", tui.windows["main"])
 		case tcell.KeyUp:
 			if len(tui.inputHistory) > 0 {
 				tui.historyIndex += 1
@@ -96,10 +100,62 @@ func NewTUI(parse func(string)) *TUI {
 	})
 	// Default view just main window and input bar
 	tui.AddWindow("main", mainWindow)
-	tui.grid.AddItem(tui.input, 2, 0, 1, 1, 0, 0, true)
+	tui.grid.AddItem(tui.input, 1, 0, 1, 1, 0, 0, true)
 	tui.grid.SetRows(0, 1)
 
 	return tui
+}
+
+func resizeWindow(w *window) {
+	if !w.scrolling {
+		_, _, _, h := w.GetInnerRect()
+		w.SetMaxLines(h)
+	}
+}
+
+func (t *TUI) scroll(direction string, w *window) {
+	if w.scrollable {
+		switch direction {
+		case "up":
+			// If we're at the bottom and haven't started scrolling yet then we
+			// need to switch to the scroll buffer mode
+			_, _, _, h := w.GetInnerRect()
+			trow, _ := w.GetBufferSize()
+			if !w.scrolling && h <= trow {
+				// We're just starting to scroll up, so we clear the buffer, set
+				// the max lines to infinite, and write the contents of the
+				// scrollbuffer (w.content) to the window. This will stop new
+				// writes from being written to the window until we scroll back
+				// to the bottom
+				w.scrolling = true
+				w.Clear()
+				w.SetMaxLines(0)
+				w.SetBytes(w.content)
+				t.app.Draw(w)
+				w.ScrollToEnd() // This doesn't seem to be working...
+			}
+		case "down":
+			// Check if we're at the bottom
+			_, _, _, h := w.GetInnerRect() // height of the screen rect
+			crow, _ := w.GetScrollOffset() // if we're at the top this is 0
+			trows, _ := w.GetBufferSize()  // number of lines in the screen buff
+			// total rows less the height of the rectangle will point at
+			// the current row
+			if (trows - h) == crow {
+				t.scroll("end", w)
+			}
+		case "end":
+			// We've got a bigger buffer than the height of the screen, so we
+			// need to scroll to the bottom
+			if w.scrolling {
+				w.scrolling = false
+				_, _, _, h := w.GetInnerRect() // height of the screen rect
+				w.Clear()
+				w.SetMaxLines(h)
+				w.Write(w.content)
+			}
+		}
+	}
 }
 
 func (t *TUI) AddWindow(name string, win plugin.Window) {
@@ -107,25 +163,26 @@ func (t *TUI) AddWindow(name string, win plugin.Window) {
 	if cw, ok := t.windows[name]; ok {
 		w = cw
 		t.grid.RemoveItem(w)
-	} else {
-		nw := cview.NewTextView()
-		nw.SetBorder(win.Border)
-		nw.SetScrollable(win.Scrollable)
-		nw.SetDynamicColors(true)
-		nw.SetMaxLines(win.MaxLines)
-		nw.SetWordWrap(false)
-		nw.SetRegions(false)
-		nw.SetChangedFunc(func() {
-			t.app.Draw()
-		})
-		wr := cview.ANSIWriter(nw)
-		w = &window{
-			TextView: nw,
-			writer:   wr,
-			content:  "",
-		}
-		t.windows[name] = w
 	}
+	nw := cview.NewTextView()
+	nw.SetBorder(win.Border)
+	nw.SetScrollable(win.Scrollable)
+	nw.SetDynamicColors(true)
+	nw.SetMaxLines(win.MaxLines)
+	nw.SetWrap(false)
+	nw.SetRegions(false)
+	nw.SetTextAlign(cview.AlignLeft)
+	nw.SetVerticalAlign(cview.AlignBottom)
+	nw.SetChangedFunc(func() {
+		t.app.Draw()
+	})
+	//wr := cview.ANSIWriter(nw)
+	w = &window{
+		TextView:   nw,
+		content:    make([]byte, 0),
+		scrollable: win.Scrollable,
+	}
+	t.windows[name] = w
 	t.grid.AddItem(w,
 		win.Row,
 		win.Col,
@@ -135,6 +192,12 @@ func (t *TUI) AddWindow(name string, win plugin.Window) {
 		win.MinGridWidth,
 		false,
 	)
+}
+
+func (t *TUI) SetGrid(rows []int, cols []int) {
+	t.grid.SetRows(rows...)
+	t.grid.SetColumns(cols...)
+	t.FixInputLine(rows, cols)
 }
 
 func (t *TUI) handleInput(key tcell.Key) {
@@ -151,10 +214,22 @@ func (t *TUI) handleInput(key tcell.Key) {
 }
 
 func (t *TUI) Print(name string, text string) {
-	t.dataReady = true
+	t.PrintBytes(name, []byte(text))
+}
+
+func (t *TUI) PrintBytes(name string, text []byte) {
 	if w, ok := t.windows[name]; ok {
-		w.content += text
-		t.windows[name].writer.Write([]byte(text))
+		if w.scrollable {
+			w.content = append(w.content, text...)
+			if !w.scrolling {
+				// Don't write text if we're in scroll mode
+				// TODO figure out way to append new lines
+				t.windows[name].Write(text)
+			}
+		} else {
+			// not a scrollable window, write text
+			t.windows[name].Write(text)
+		}
 	}
 }
 

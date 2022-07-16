@@ -61,7 +61,7 @@ func initAutobuff() *plugin.Config {
 	C.AddAction("^You are no longer affected by: (.+)\\.$", BuffDown)
 	C.AddAction("^You cannot perform (.+) abilities again yet", PreventUsed)
 	C.AddAction("^You may again perform (.+) abilities", PreventAvailable)
-	C.AddAction("^Your botanswer is: autobuff done", func(t *trigger.Trigger) { attempting = false })
+	//C.AddAction("^Your botanswer is: autobuff done", func(t *trigger.Trigger) { attempting = false })
 	C.AddAlias("^spel$", CheckBuffs)
 	C.AddAlias("^abon$", AutobuffOn)
 	C.AddAlias("^aboff$", AutobuffOff)
@@ -108,18 +108,11 @@ var PreventAvailable trigger.Func = func(t *trigger.Trigger) {
 	}
 	activePreventions[t.Matches[1]] = false
 }
-var attempting = false
 var CheckBuffs trigger.Func = func(t *trigger.Trigger) {
 	for name, buff := range abilities {
 		if !buff.IsActive && !isPrevented(buff) {
-			if !attempting {
-				DoBuff(name, buff)
-				C.SendNow("botanswer autobuff done")
-				attempting = true
-			}
+			DoBuff(name, buff)
 		}
-	}
-	if attempting {
 	}
 }
 

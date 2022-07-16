@@ -6,37 +6,37 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/seandheath/gomc/internal/tui"
 	"github.com/seandheath/gomc/pkg/plugin"
 	"github.com/seandheath/gomc/pkg/trigger"
 )
 
-const BUFFERSIZE = 1024
+const BUFFERSIZE = 1024 * 1024
 
 type Client struct {
-	conn      net.Conn
-	buffer    []byte
-	actions   []trigger.Trigger
-	aliases   []trigger.Trigger
-	functions map[string]trigger.Func
-	plugins   map[string]*plugin.Config
-	tui       *tui.TUI
+	conn          net.Conn
+	timeout       time.Time
+	printBuffer   []byte
+	processBuffer []byte
+	actions       []trigger.Trigger
+	aliases       []trigger.Trigger
+	functions     map[string]trigger.Func
+	plugins       map[string]*plugin.Config
+	tui           *tui.TUI
 
 	// Publicly available variables
 	Gag      bool
-	RawLine  string
-	TextLine string
+	RawLine  []byte
+	TextLine []byte
 	Var      map[string]string
 }
 
 func NewClient() *Client {
 	c := &Client{}
 	c.conn = nil
-	c.buffer = make([]byte, BUFFERSIZE)
 	c.Gag = false
-	c.RawLine = "raw"
-	c.TextLine = "text"
 	c.actions = []trigger.Trigger{}
 	c.aliases = []trigger.Trigger{}
 	c.functions = map[string]trigger.Func{}
@@ -96,6 +96,10 @@ func (c *Client) Print(text string) {
 	c.PrintTo("main", text)
 }
 
+func (c *Client) PrintBytesTo(window string, b []byte) {
+	c.tui.PrintBytes(window, b)
+}
+
 // PrintTo prints text to the specified window
 func (c *Client) PrintTo(window string, text string) {
 	c.tui.Print(window, text)
@@ -115,13 +119,15 @@ func (c *Client) LoadPlugin(name string, p *plugin.Config) {
 		c.tui.AddWindow(n, w)
 	}
 
+	c.tui.SetGrid(p.Grid.Rows, p.Grid.Columns)
+
 	c.plugins[name] = p
 }
 
 func (c *Client) CheckTriggers(list []trigger.Trigger, text string) bool {
 	matched := false
 	for _, t := range list {
-		t.Matches = t.FindStringSubmatch(text)
+		t.Matches = t.FindStringSubmatch(string(text))
 		if len(t.Matches) > 0 {
 			matched = true
 			if len(t.SubexpNames()) > 0 {

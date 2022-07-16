@@ -28,6 +28,7 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/seandheath/gomc/internal/client"
+	"github.com/seandheath/gomc/plugins/nodeka"
 )
 
 var profile = true
@@ -39,7 +40,7 @@ func main() {
 		}()
 	}
 	c := client.NewClient()
-	//c.LoadPlugin("nodeka", nodeka.Init(c, "plugins/nodeka/nodeka.yaml"))
+	c.LoadPlugin("nodeka", nodeka.Init(c, "plugins/nodeka/nodeka.yaml"))
 	c.Run()
 	fmt.Println("Press enter to exit")
 	fmt.Scanln()
