@@ -121,6 +121,7 @@ func resizeWindow(w *window) {
 	if !w.scrolling {
 		_, _, _, h := w.GetInnerRect()
 		w.SetMaxLines(h)
+		w.SetBytes(w.content)
 	}
 }
 
