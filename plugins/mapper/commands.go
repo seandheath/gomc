@@ -6,30 +6,70 @@ import (
 )
 
 func addCommands(c *client.Client, m *Map) {
-	C.AddAliasFunc("#map new area (.+)$", m.NewAreaCmd)
-	C.AddAliasFunc("#map na (.+)$", m.NewAreaCmd)
-	C.AddAliasFunc("#map new room (n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
-	C.AddAliasFunc("#map nr (n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
-	C.AddAliasFunc("^(n|north|e|east|s|south|w|west|u|up|d|down|lo|loo|look|map|rec|reca|recal|recall)$", m.CaptureMoveCmd)
-	C.AddAliasFunc("^([neswud]+)$", m.CaptureMovesCmd)
+	c.AddAliasFunc("^#map new map$", m.NewMapCmd)
+	c.AddAliasFunc("^#map new area (?P<name>.+)$", m.NewAreaCmd)
+	c.AddAliasFunc("^#map na (?P<name>.+)$", m.NewAreaCmd)
+	c.AddAliasFunc("^#map new room (?P<move>n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
+	c.AddAliasFunc("^#map nr (?P<move>n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
+	c.AddAliasFunc("^(?P<move>n|north|e|east|s|south|w|west|u|up|d|down|lo|loo|look|map|rec|reca|recal|recall)$", m.CaptureMoveCmd)
+	c.AddAliasFunc("^(?P<moves>[neswud]+)$", m.CaptureMovesCmd)
+	c.AddAliasFunc("^#map start$", m.StartCmd)
+	c.AddAliasFunc("^#map stop$", m.StopCmd)
+	C.AddAliasFunc("^#map show (?P<window>.+)$", m.ShowCmd)
+}
+
+func (m *Map) ShowCmd(t *trigger.Trigger) {
+	m.Show(t.Results["window"])
+}
+
+func (m *Map) StartCmd(t *trigger.Trigger) {
+	m.mapping = true
+	C.Print("\nMapping started")
+}
+func (m *Map) StopCmd(t *trigger.Trigger) {
+	m.mapping = false
+	C.Print("\nMapping stopped")
+}
+
+func (m *Map) NewMapCmd(t *trigger.Trigger) {
+	M = NewMap()
+	C.Print("\nMap created - add an area with #map new area <name>")
 }
 
 func (m *Map) NewAreaCmd(t *trigger.Trigger) {
-	name := t.Matches[1]
-	if _, ok := m.Areas[name]; ok {
-		C.Print("Area already exists: " + name)
-	} else {
-		m.Areas[name] = &Area{Name: name, Rooms: make(map[int]*Room)}
+	name := t.Results["name"]
+	if _, ok := m.GetArea(name); ok {
+		C.Print("\nArea already exists: " + name)
+		return
 	}
+	if m.room != nil {
+		// I'm already in a room/area, we need to make a transition room
+
+	}
+	a := m.NewArea(name)
+	r := m.NewRoom(a, m.rmName, m.rmExitString, Coordinates{0, 0, 0})
+	m.room = r
+	C.Print("\nArea created: " + name)
+}
+
+func (m *Map) GetArea(name string) (*Area, bool) {
+	for _, a := range m.areas {
+		if a.Name == name {
+			return a, true
+		}
+	}
+	return nil, false
 }
 
 func (m *Map) NewRoomCmd(t *trigger.Trigger) {
-	//name := t.Matches[1]
-	//exits := t.Matches[2]
+	if m.room == nil {
+		C.Print("\nMAP: I don't know where you are. I can't add a room.")
+	}
 }
 
 func (m *Map) CaptureMoveCmd(t *trigger.Trigger) {
-	if dir, ok := dirmap[t.Matches[1]]; ok {
+	ds := t.Results["move"]
+	if dir, ok := dirmap[ds]; ok {
 		m.moveStart(dir)
 	} else {
 		// could be recall or look?

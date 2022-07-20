@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	DEADLINE = time.Millisecond * 5
+	DEADLINE = time.Millisecond * 20
 )
 
 const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
@@ -73,6 +73,8 @@ func (c *Client) handleData(b []byte) (int, error) {
 			// If we haven't hit the deadline yet then try and read some more data
 			if time.Now().Before(c.timeout) {
 				return len(b), nil
+			} else {
+				c.Print("\n\ntimeout\n\n")
 			}
 
 		}
@@ -83,10 +85,10 @@ func (c *Client) handleData(b []byte) (int, error) {
 	c.timeout = time.Time{}
 
 	for _, line := range bytes.Split(c.processBuffer, []byte("\r")) {
-		tline := util.TrimEnd(line)
-		c.RawLine = append(tline, '\n')
-		sline := cview.StripTags(tline, true, true)
-		c.TextLine = util.SwapSemi(sline)
+		//tline := util.TrimEnd(line)
+		c.RawLine = line
+		sline := cview.StripTags(c.RawLine, true, true)
+		c.TextLine = util.TrimEnd(util.SwapSemi(sline))
 		c.CheckTriggers(c.actions, string(c.TextLine))
 		if c.Gag {
 			c.Gag = false

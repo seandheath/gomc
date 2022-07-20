@@ -155,7 +155,7 @@ func (c *Client) CheckTriggers(list []*trigger.Trigger, text string) bool {
 						}
 					}
 				}
-				t.Cmd(t)
+				t.Do()
 			}
 		}
 	}
@@ -215,4 +215,14 @@ func (c *Client) untrigger(triggerList []*trigger.Trigger, triggerType string, i
 		return triggerList
 	}
 	return append(triggerList[:n], triggerList[n+1:]...)
+}
+
+func (c *Client) GetWindowSize(name string) (int, int) {
+	if win, ok := c.tui.Windows[name]; !ok {
+		c.Print("\nNo window named '" + name + "' found.\n")
+		return 0, 0
+	} else {
+		_, _, w, h := win.GetInnerRect()
+		return w, h
+	}
 }

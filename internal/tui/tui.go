@@ -21,7 +21,7 @@ type window struct {
 type TUI struct {
 	app              *cview.Application
 	grid             *cview.Grid
-	windows          map[string]*window
+	Windows          map[string]*window
 	input            *cview.InputField
 	inputHistory     []string
 	inputHighlighted bool
@@ -43,7 +43,7 @@ var mainWindow = plugin.Window{
 
 func NewTUI(parse func(string)) *TUI {
 	tui := &TUI{}
-	tui.windows = make(map[string]*window)
+	tui.Windows = make(map[string]*window)
 	tui.grid = cview.NewGrid()
 	tui.input = cview.NewInputField()
 	tui.input.SetDoneFunc(tui.handleInput)
@@ -65,14 +65,14 @@ func NewTUI(parse func(string)) *TUI {
 	tui.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyESC:
-			tui.app.SetFocus(tui.windows["main"])
-			tui.scroll("end", tui.windows["main"])
+			tui.app.SetFocus(tui.Windows["main"])
+			tui.scroll("end", tui.Windows["main"])
 		case tcell.KeyPgUp:
-			tui.app.SetFocus(tui.windows["main"])
-			tui.scroll("up", tui.windows["main"])
+			tui.app.SetFocus(tui.Windows["main"])
+			tui.scroll("up", tui.Windows["main"])
 		case tcell.KeyPgDn:
-			tui.app.SetFocus(tui.windows["main"])
-			tui.scroll("down", tui.windows["main"])
+			tui.app.SetFocus(tui.Windows["main"])
+			tui.scroll("down", tui.Windows["main"])
 		case tcell.KeyUp:
 			if len(tui.inputHistory) > 0 {
 				tui.historyIndex += 1
@@ -173,7 +173,7 @@ func (t *TUI) scroll(direction string, w *window) {
 
 func (t *TUI) AddWindow(name string, win plugin.Window) {
 	var w *window
-	if cw, ok := t.windows[name]; ok {
+	if cw, ok := t.Windows[name]; ok {
 		w = cw
 		t.grid.RemoveItem(w)
 	}
@@ -195,7 +195,7 @@ func (t *TUI) AddWindow(name string, win plugin.Window) {
 		content:    make([]byte, 0),
 		scrollable: win.Scrollable,
 	}
-	t.windows[name] = w
+	t.Windows[name] = w
 	t.grid.AddItem(w,
 		win.Row,
 		win.Col,
@@ -231,17 +231,17 @@ func (t *TUI) Print(name string, text string) {
 }
 
 func (t *TUI) PrintBytes(name string, text []byte) {
-	if w, ok := t.windows[name]; ok {
+	if w, ok := t.Windows[name]; ok {
 		if w.scrollable {
 			w.content = append(w.content, text...)
 			if !w.scrolling {
 				// Don't write text if we're in scroll mode
 				// TODO figure out way to append new lines
-				t.windows[name].Write(text)
+				t.Windows[name].Write(text)
 			}
 		} else {
 			// not a scrollable window, write text
-			t.windows[name].Write(text)
+			t.Windows[name].Write(text)
 		}
 	}
 }

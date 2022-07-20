@@ -33,14 +33,14 @@ windows:
     colspan: 1
     maxlines: 200
     scrollable: true
-  status:
+  map:
     row: 1
     col: 1
     rowspan: 1
     colspan: 1
     border: false
-    maxlines: 500
-    scrollable: true
+    maxlines: 200
+    scrollable: false
   omap:
     row: 2
     col: 1

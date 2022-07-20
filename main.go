@@ -29,6 +29,7 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/seandheath/gomc/internal/client"
+	"github.com/seandheath/gomc/plugins/mapper"
 	"github.com/seandheath/gomc/plugins/nodeka"
 )
 
@@ -41,6 +42,7 @@ func main() {
 		}()
 	}
 	c := client.NewClient()
+	c.LoadPlugin("map", mapper.Init(c, "plugins/mapper/mapper.yaml"))
 	c.LoadPlugin("nodeka", nodeka.Init(c, "plugins/nodeka/nodeka.yaml"))
 	c.Run()
 	fmt.Println("Press enter to exit")
