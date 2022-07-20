@@ -1,21 +1,47 @@
 package mapper
 
 import (
+	"regexp"
+	"strconv"
+
 	"github.com/seandheath/gomc/internal/client"
 	"github.com/seandheath/gomc/pkg/trigger"
 )
 
 func addCommands(c *client.Client, m *Map) {
+	c.AddAliasFunc("^#map reset$", m.ResetCmd)
 	c.AddAliasFunc("^#map new map$", m.NewMapCmd)
 	c.AddAliasFunc("^#map new area (?P<name>.+)$", m.NewAreaCmd)
 	c.AddAliasFunc("^#map na (?P<name>.+)$", m.NewAreaCmd)
 	c.AddAliasFunc("^#map new room (?P<move>n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
 	c.AddAliasFunc("^#map nr (?P<move>n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
-	c.AddAliasFunc("^(?P<move>n|north|e|east|s|south|w|west|u|up|d|down|lo|loo|look|map|rec|reca|recal|recall)$", m.CaptureMoveCmd)
-	c.AddAliasFunc("^(?P<moves>[neswud]+)$", m.CaptureMovesCmd)
+	c.AddAliasFunc("^(?P<move>north|east|south|west|up|down|lo|loo|look|map|rec|reca|recal|recall)$", m.CaptureMoveCmd)
+	c.AddAliasFunc(`^(?P<speedwalk>speedwalk)? ?(?P<steps>(\d*(n|e|s|w|u|d))+)$`, m.CaptureMovesCmd)
 	c.AddAliasFunc("^#map start$", m.StartCmd)
 	c.AddAliasFunc("^#map stop$", m.StopCmd)
 	C.AddAliasFunc("^#map show (?P<window>.+)$", m.ShowCmd)
+	C.AddAliasFunc("^#map undo$", m.UndoCmd)
+	C.AddAliasFunc("^#map autolink (?P<set>on|off)$", m.AutoLinkCmd)
+
+}
+
+func (m *Map) AutoLinkCmd(t *trigger.Trigger) {
+	if t.Results["set"] == "on" {
+		C.Print("\nMAP: Auto-link on")
+		m.autolink = true
+	} else {
+		C.Print("\nMAP: AutoLink off")
+		m.autolink = false
+	}
+}
+
+func (m *Map) ResetCmd(t *trigger.Trigger) {
+	m.Reset()
+}
+
+func (m *Map) UndoCmd(t *trigger.Trigger) {
+	r := m.rooms[len(m.rooms)-1]
+	m.DeleteRoom(r)
 }
 
 func (m *Map) ShowCmd(t *trigger.Trigger) {
@@ -70,23 +96,41 @@ func (m *Map) NewRoomCmd(t *trigger.Trigger) {
 func (m *Map) CaptureMoveCmd(t *trigger.Trigger) {
 	ds := t.Results["move"]
 	if dir, ok := dirmap[ds]; ok {
-		m.moveStart(dir)
-	} else {
-		// could be recall or look?
+		m.nextMoves = append(m.nextMoves, dir)
 	}
 	// Pass the move command to the MUD
 	C.SendNow(t.Matches[1])
 }
 
+var stepRegex = regexp.MustCompile(`(?P<num>\d*)(?P<dir>n|e|s|w|u|d)`)
+
 func (m *Map) CaptureMovesCmd(t *trigger.Trigger) {
 	// TODO break the moves up and add them to the move queue
-}
-
-// As you move around the MUD rooms are added automatically.
-// If you run into a wall this command will remove the room
-// you just created.
-func (m *Map) UndoCmd(t *trigger.Trigger) {
-
+	g := stepRegex.FindAllStringSubmatch(t.Results["steps"], -1)
+	for _, step := range g {
+		num := step[1]
+		d := step[2]
+		if num == "" {
+			num = "1"
+		}
+		n, err := strconv.Atoi(num)
+		if err != nil {
+			C.Print("\nMAP: Invalid number while parsing string: " + num)
+			return
+		}
+		for i := 0; i < n; i++ {
+			if dir, ok := dirmap[d]; ok {
+				m.nextMoves = append(m.nextMoves, dir)
+			}
+		}
+	}
+	if len(g) == 1 && len(g[0][0]) == 1 {
+		// only have one move
+		C.SendNow(t.Results["steps"])
+	} else {
+		// prepend speedwalk to it
+		C.SendNow("speedwalk " + t.Results["steps"])
+	}
 }
 
 // Delete the room in the provided direction

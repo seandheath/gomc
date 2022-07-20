@@ -7,3 +7,18 @@ actions:
   # mapper to work for Nodeka as an example.
   #'^(?P<name>.+) \[ exits: (?P<exits>(north)? ?(east)? ?(south)? ?(west)? ?(up)? ?(down)?) ?\]$': '#func moveHappening'
   #'^\[Reply:': '#func moveDone' # This is my normal prompt which is always printed after showing room contents
+  'block\(s\) your passage (north|east|south|west|up|down)\.$': '#func MoveFail'
+  '^You aren''t of the right profession to enter here\.$': '#func MoveFail'
+  '^You aren''t of an acceptable breed to enter here\.$': '#func MoveFail'
+  '^You aren''t of the right mortal status to enter here\.$': '#func MoveFail'
+  '^While you''re sleeping? Maybe you should wake up first?$': '#func MoveClear'
+  '^This action cannot be performed while resting\.$': '#func MoveClear'
+  '^While you''re fighting?? No way!!$': '#func MoveFail'
+  '^Alas, you cannot go in that direction\.$': '#func MoveFail'
+  '^You lack the means to go there\.$': '#func MoveFail'
+  '^You disappear with a flashing light\.$': '#func MoveRecall'
+  '^You can''t recall from a player fight!!': '#func MoveFail'
+  '^You have failed to recall!': '#func MoveFail'
+  '^Unexecuted commands have been cleared\.$': '#func MoveClear'
+  'sigil of banishment is achieved\. You disappear with a flashing light\.$': '#func MoveRecall'
+  '^You (?P<open>open|close|lock|unlock) the (?P<door>\w+) leading (?P<dir>north|east|south|west|up|down)\.$': '#func MapDoor'

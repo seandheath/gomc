@@ -6,12 +6,14 @@ actions:
   '^You tell': '#capture'
   '^You say, ''.+': '#capture' 
   '^< (emote|social) >': '#capture'
-  '^\[ (>>>|<>|Group|Expert|Immort|OOC|Virtue|newbie|debate|gossip|trivia|sing|shout|yell|auction)': '#capture'
+  '^\[ (>>>|<>|Group|Expert|Immort|OOC|Virtue|newbie|debate|gossip|trivia|sing|shout|yell|auction|).* \]: ''.*''$': '#capture'
   '^Your bounty': '#capture'
   '^(#|<<)': '#capture'
   '^You are CAUGHT': '#capture'
   '^Increased mastery in your ability of': '#capture'
-
+  '^\[Reply: (?P<reply>[\w'' -]*)?\]\[Xp:(?P<xp>\d+)\]\[A:(?P<align>.+)\]\[G:(?P<gold>\d+)\]\[(?P<lag>\d+)\]\[(?P<pk>PKer)?\]$': '#func ReplyPrompt'
+  '^\[H:(\d+)/(\d+)\]\[M:(\d+)/(\d+)\]\[S:(\d+)/(\d+)\]\[E:(\d+)/(\d+)\]$': '#func PoolPrompt'
+  '^\[(.+):\((.+)\)\]\[(.+):\((.+)\)\]\[(\d+)\]$': '#func CombatPrompt'
   #'^The aura of this place heals you\.': '#tick'
 
 aliases:

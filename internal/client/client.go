@@ -90,6 +90,10 @@ func (c *Client) Parse(text string) {
 }
 
 func (c *Client) SendNow(text string) {
+	if c.conn == nil {
+		c.Print("Not connected.\n")
+		return
+	}
 	c.Print(text + "\n")
 	_, err := c.conn.Write([]byte(text + "\n"))
 	if err != nil {
