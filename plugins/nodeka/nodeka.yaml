@@ -12,7 +12,7 @@ actions:
   '^You are CAUGHT': '#capture'
   '^Increased mastery in your ability of': '#capture'
   '^\[Reply: (?P<reply>[\w'' -]*)?\]\[Xp:(?P<xp>\d+)\]\[A:(?P<align>.+)\]\[G:(?P<gold>\d+)\]\[(?P<lag>\d+)\]\[(?P<pk>PKer)?\]$': '#func ReplyPrompt'
-  '^\[H:(\d+)/(\d+)\]\[M:(\d+)/(\d+)\]\[S:(\d+)/(\d+)\]\[E:(\d+)/(\d+)\]$': '#func PoolPrompt'
+  '^\[H:(?P<chp>\d+)/(?P<mhp>\d+)\]\[M:(<?P<cm>\d+)/(<?P<mm>\d+)\]\[S:(<?P<cs>\d+)/(<?P<ms>\d+)\]\[E:(<?P<ce>\d+)/(<?P<me>\d+)\]$': '#func PoolPrompt'
   '^\[(.+):\((.+)\)\]\[(.+):\((.+)\)\]\[(\d+)\]$': '#func CombatPrompt'
   #'^The aura of this place heals you\.': '#tick'
 

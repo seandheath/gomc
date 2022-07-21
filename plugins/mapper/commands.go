@@ -22,16 +22,28 @@ func addCommands(c *client.Client, m *Map) {
 	C.AddAliasFunc("^#map show (?P<window>.+)$", m.ShowCmd)
 	C.AddAliasFunc("^#map undo$", m.UndoCmd)
 	C.AddAliasFunc("^#map autolink (?P<set>on|off)$", m.AutoLinkCmd)
+	C.AddAliasFunc("^#map save (?P<path>.+)$", m.SaveCmd)
+	C.AddAliasFunc("^#map load (?P<path>.+)$", m.LoadCmd)
 
+}
+
+func (m *Map) LoadCmd(t *trigger.Trigger) {
+	path := t.Results["path"]
+	m.Load(path)
+}
+
+func (m *Map) SaveCmd(t *trigger.Trigger) {
+	path := t.Results["path"]
+	SaveMap(m, path)
 }
 
 func (m *Map) AutoLinkCmd(t *trigger.Trigger) {
 	if t.Results["set"] == "on" {
 		C.Print("\nMAP: Auto-link on")
-		m.autolink = true
+		m.Autolink = true
 	} else {
 		C.Print("\nMAP: AutoLink off")
-		m.autolink = false
+		m.Autolink = false
 	}
 }
 
@@ -49,11 +61,11 @@ func (m *Map) ShowCmd(t *trigger.Trigger) {
 }
 
 func (m *Map) StartCmd(t *trigger.Trigger) {
-	m.mapping = true
+	m.Mapping = true
 	C.Print("\nMapping started")
 }
 func (m *Map) StopCmd(t *trigger.Trigger) {
-	m.mapping = false
+	m.Mapping = false
 	C.Print("\nMapping stopped")
 }
 
@@ -79,7 +91,7 @@ func (m *Map) NewAreaCmd(t *trigger.Trigger) {
 }
 
 func (m *Map) GetArea(name string) (*Area, bool) {
-	for _, a := range m.areas {
+	for _, a := range m.Areas {
 		if a.Name == name {
 			return a, true
 		}

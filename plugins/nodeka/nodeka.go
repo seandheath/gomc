@@ -9,12 +9,30 @@ import (
 	"github.com/seandheath/gomc/pkg/trigger"
 )
 
+type Character struct {
+	Exp           int
+	Align         int
+	Gold          int
+	Lag           int
+	CurrentHP     int
+	MaxHP         int
+	CurrentMana   int
+	MaxMana       int
+	CurrentSpirit int
+	MaxSpirit     int
+	CurrentEnd    int
+	MaxEnd        int
+}
+
 var Config *plugin.Config
 var C *client.Client
 var ReplyQ *trigger.Queue
 var DeadQ *trigger.Queue
+var My Character
 
 func Init(c *client.Client, file string) *plugin.Config {
+	My = Character{}
+
 	C = c
 	cfg, err := plugin.ReadConfig(file)
 	if err != nil {
@@ -66,4 +84,25 @@ func DamageLine(t *trigger.Trigger) {
 	}
 	// Add the damage string to the beginning of the line
 	C.RawLine = append([]byte(fmt.Sprintf("[ %d ] ", td)), C.RawLine...)
+}
+
+func getResult(pool string, results map[string]string) int {
+	if val, ok := results[pool]; ok {
+		i, err := strconv.Atoi(val)
+		if err != nil {
+			return 0
+		}
+		return i
+	}
+	return 0
+}
+func PoolPrompt(t *trigger.Trigger) {
+	My.CurrentHP = getResult("chp", t.Results)
+	My.MaxHP = getResult("mhp", t.Results)
+	My.CurrentMana = getResult("cm", t.Results)
+	My.MaxMana = getResult("mm", t.Results)
+	My.CurrentSpirit = getResult("cs", t.Results)
+	My.MaxSpirit = getResult("ms", t.Results)
+	My.CurrentEnd = getResult("ce", t.Results)
+	My.MaxEnd = getResult("me", t.Results)
 }

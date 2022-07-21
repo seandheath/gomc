@@ -1,10 +1,14 @@
 package mapper
 
 import (
+	"compress/gzip"
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/seandheath/gomc/internal/client"
 	"github.com/seandheath/gomc/pkg/plugin"
+	"gopkg.in/yaml.v2"
 )
 
 type Direction string
@@ -76,4 +80,53 @@ func Init(cli *client.Client, file string) *plugin.Config {
 
 	Config = cfg
 	return Config
+}
+
+func SaveMap(m *Map, path string) {
+	data, err := yaml.Marshal(m)
+	if err != nil {
+		C.Print("\nMAP: Unable to marshal map yaml for saving: " + err.Error())
+		return
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		C.Print("\nMAP: Unable to save map data to file: " + err.Error())
+		return
+	}
+	defer f.Close()
+
+	w := gzip.NewWriter(f)
+	defer w.Close()
+
+	_, err = w.Write(data)
+	if err != nil {
+		C.Print("\nMAP: Error writing map to file: " + err.Error())
+	}
+	C.Print("\nMAP: Saved map to file: " + path)
+}
+
+func (m *Map) Load(path string) {
+	f, err := os.Open(path)
+	if err != nil {
+		C.Print("\nMAP: Unable to load map data from file: " + err.Error())
+	}
+	defer f.Close()
+
+	r, err := gzip.NewReader(f)
+	if err != nil {
+		C.Print("\nMAP: Unable to decompress map data from file: " + err.Error())
+	}
+	defer r.Close()
+
+	data, err := io.ReadAll(r)
+	if err != nil {
+		C.Print("\nMAP: Unable to read map data from file: " + err.Error())
+	}
+
+	err = yaml.Unmarshal(data, m)
+	if err != nil {
+		C.Print("\nMAP: Unable to unmarshal map data from file contents: " + err.Error())
+	}
+	m.Rebuild()
+	C.Print("\nMAP: Loaded " + path)
 }

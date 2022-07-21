@@ -11,16 +11,16 @@ func (m *Map) AddRoomFromMove(move Direction) *Room {
 		return nil
 	}
 	// We have a room that we are coming from, let's add a room to it
-	coordinates := m.GetCoordinatesFromDir(m.room.coordinates, move)
+	coordinates := m.GetCoordinatesFromDir(m.room.Coordinates, move)
 	nr := m.NewRoom(m.room.area, m.rmName, m.rmExitString, coordinates)
 
 	// Add exits to each room that link to each other if autolink is enabled
-	if m.autolink {
-		for dir, rm := range nr.exits {
-			if rm == nil {
+	if m.Autolink {
+		for dir, r := range nr.exits {
+			if r == nil {
 				// We have a direction but no room, check if there is a room at
 				// those coordinates
-				coordinates := m.GetCoordinatesFromDir(nr.coordinates, dir)
+				coordinates := m.GetCoordinatesFromDir(nr.Coordinates, dir)
 				pr := m.GetRoomAtCoordinates(nr.area, coordinates)
 				if len(pr) == 1 {
 					if pr[0] != nil {
@@ -31,6 +31,7 @@ func (m *Map) AddRoomFromMove(move Direction) *Room {
 			}
 		}
 	} else {
+
 		// Only link the previous move
 		m.linkRooms(m.room, nr, move)
 	}
@@ -41,8 +42,10 @@ func (m *Map) AddRoomFromMove(move Direction) *Room {
 func (m *Map) linkRooms(from *Room, to *Room, move Direction) {
 	// Add the exit to the from room
 	from.exits[move] = to
+	from.ExitIDs[move] = to.ID
 	// Add the exit to the to room
 	to.exits[reverse[move]] = from
+	to.ExitIDs[reverse[move]] = from.ID
 }
 
 func GetExits(exits string) map[Direction]*Room {
@@ -53,8 +56,21 @@ func GetExits(exits string) map[Direction]*Room {
 		}
 		dir := dirmap[e]
 		exitsMap[dir] = nil
+
 	}
 	return exitsMap
+}
+
+func GetExitIDs(exits map[Direction]*Room) map[Direction]int {
+	idMap := map[Direction]int{}
+	for dir, r := range exits {
+		if r == nil {
+			idMap[dir] = 0
+		} else {
+			idMap[dir] = r.ID
+		}
+	}
+	return idMap
 }
 
 // TODO implement ShiftRoom

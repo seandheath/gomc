@@ -9,27 +9,29 @@ type Coordinates struct {
 }
 
 type Room struct {
-	id          int                 `yaml:"id"`    // Unique ID
-	name        string              `yaml:"name"`  // Room name as seen in the game
-	exits       map[Direction]*Room `yaml:"exits"` // Exits out of this room
-	exitString  string
-	area        *Area             `yaml:"area"`        // The parent area of this room
-	coordinates Coordinates       `yaml:"coordinates"` // The coordinates of this room
-	tags        map[string]string `yaml:"tags"`        // List of key:value flags for this room
+	ID          int                 `yaml:"id"`   // Unique ID
+	Name        string              `yaml:"name"` // Room name as seen in the game
+	exits       map[Direction]*Room // Need to be reconstituted on load
+	ExitIDs     map[Direction]int   `yaml:"exits"`
+	ExitString  string              `yaml:"exitString"`
+	area        *Area               // The parent area of this room
+	Coordinates Coordinates         `yaml:"coordinates"` // The coordinates of this room
+	Tags        map[string]string   `yaml:"tags"`        // List of key:value flags for this room
 	//extraIdentifiers map[string]string `yaml:"identifier"`  // A list of key:value identifiers for this room
 }
 
-func (m *Map) NewRoom(area *Area, name, exits string, c Coordinates) *Room {
+func (m *Map) NewRoom(a *Area, name, exits string, c Coordinates) *Room {
 	r := &Room{}
-	r.id = m.GetNewID()
-	r.name = name
-	r.area = area
-	r.coordinates = c
+	r.ID = m.GetNewID()
+	r.Name = name
+	r.area = a
+	r.Coordinates = c
 	r.exits = GetExits(exits)
-	r.tags = map[string]string{}
-	r.exitString = exits
-	area.AddRoom(r)
+	r.ExitIDs = GetExitIDs(r.exits)
+	r.Tags = map[string]string{}
+	r.ExitString = exits
 	m.AddRoom(r)
+	a.AddRoom(r)
 	return r
 }
 

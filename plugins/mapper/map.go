@@ -1,19 +1,17 @@
 package mapper
 
 type Map struct {
-	loaded bool
-	recall *Room // Special room for recall TODO: make this configurable for multiple rooms/triggers
-	room   *Room // Current room
-	//area         *Area            // Current area not sure I'm gonna use this
-	areas        []*Area     `yaml:"areas"` // All areas in the map
-	rooms        []*Room     `yaml:"rooms"` // All rooms in the map
-	nextMoves    []Direction // queued up moves
-	pastMoves    []Direction // used to track last steps to determine location if we get lost
-	rmExitString string      // rmExits are updated every time we see an exit string - even if we're not expecting a mov
-	rmName       string      // rmName is updated every time we see a new room name - even if we're not expecting a move
-	mapping      bool        // do not create or link rooms if we're not in mapping mode, puts map in read-only state
-	debug        bool        // show debug information at the top of the map output
-	autolink     bool        // automatically link rooms together when they are adjacent
+	Recall       int              `yaml:"recall"` // Special room for recall TODO: make this configurable for multiple rooms/triggers
+	room         *Room            // Current room
+	Areas        map[string]*Area `yaml:"areas"` // All areas in the map, name is key
+	rooms        map[int]*Room    // All rooms in the map, ID is key
+	nextMoves    []Direction      // queued up moves
+	pastMoves    []Direction      // used to track last steps to determine location if we get lost
+	rmExitString string           // rmExits are updated every time we see an exit string - even if we're not expecting a mov
+	rmName       string           // rmName is updated every time we see a new room name - even if we're not expecting a move
+	Mapping      bool             `yaml:"mapping"`  // do not create or link rooms if we're not in mapping mode, puts map in read-only state
+	Debug        bool             `yaml:"debug"`    // show debug information at the top of the map output
+	Autolink     bool             `yaml:"autolink"` // automatically link rooms together when they are adjacent
 }
 
 func NewMap() *Map {
@@ -22,34 +20,70 @@ func NewMap() *Map {
 	return m
 }
 
-func (m *Map) Reset() *Map {
-	m.areas = []*Area{}
-	m.rooms = []*Room{}
-	m.loaded = true
-	m.mapping = true
-	m.debug = true
-	m.autolink = true
+// Rebuild is called when a map is loaded from disk. It steps through all
+// the rooms and populates the exit arrays with pointers and collects all the
+// room objects into the map.rooms object
+func (m *Map) Rebuild() {
+	// step through each area
+	for _, a := range m.Areas {
+		// get all the room objects from each area
+		for _, r := range a.Rooms {
+			if r != nil {
+				r.area = a
+				// add the room to the map
+				m.rooms[r.ID] = r
+			}
+		}
+	}
+	// Go through all the rooms and populate the exit arrays with pointers to
+	// the room objects
+	for _, cr := range m.rooms {
+		cr.exits = map[Direction]*Room{}
+		for dir, id := range cr.ExitIDs {
+			if nr, ok := m.rooms[id]; ok {
+				cr.exits[dir] = nr
+			} else {
+				if id == 0 {
+					cr.exits[dir] = nil
+				}
+			}
+		}
+	}
+}
+
+func (m *Map) Reset() {
+	m.Areas = map[string]*Area{}
+	m.rooms = map[int]*Room{}
+	m.Mapping = true
+	m.Debug = true
+	m.Autolink = true
+	m.Recall = 0
+	m.room = nil
+	m.rmExitString = ""
+	m.rmName = ""
 	C.Print("\nMap created. Add an area to start mapping. Type #map new area <name>")
-	return m
+}
+
+// Returns the room with the given ID or nil if the room doesn't exist
+func (m *Map) GetRoom(id int) *Room {
+	if r, ok := m.rooms[id]; ok {
+		if r != nil {
+			return r
+		}
+	}
+	return nil
 }
 
 func (m *Map) DeleteRoom(r *Room) {
-	r.area.RemoveRoom(r)
-	for i, room := range m.rooms {
-		if room == r {
-			m.rooms = append(m.rooms[:i], m.rooms[i+1:]...)
-			break
-		}
-	}
-	r = nil
+	m.rooms[r.ID] = nil
 }
 
 func (m *Map) AddArea(area *Area) {
-	m.areas = append(m.areas, area)
+	m.Areas[area.Name] = area
 }
 
 func (m *Map) AddRoom(room *Room) {
-	m.rooms = append(m.rooms, room)
+	m.rooms[room.ID] = room
 }
 
 func (m *Map) SetRoom(r *Room) {
@@ -59,13 +93,15 @@ func (m *Map) SetRoom(r *Room) {
 // GetNewID steps through all the rooms in the map and identifies the lowest
 // available ID integer. Room IDs are reused after rooms are deleted.
 func (m *Map) GetNewID() int {
-	return getID(0, m.rooms)
+	return getID(1, m.rooms)
 }
 
-func getID(id int, rooms []*Room) int {
+func getID(id int, rooms map[int]*Room) int {
 	for _, r := range rooms {
-		if r.id == id {
-			return getID(id+1, rooms)
+		if r != nil {
+			if r.ID == id {
+				return getID(id+1, rooms)
+			}
 		}
 	}
 	return id
@@ -77,7 +113,7 @@ func (m *Map) GetRoomAtCoordinates(a *Area, c Coordinates) []*Room {
 	// Each area has a new set of coordinates
 	for _, r := range a.Rooms {
 		if r != nil {
-			if r.coordinates.Equals(c) {
+			if r.Coordinates.Equals(c) {
 				rs = append(rs, r)
 			}
 		}

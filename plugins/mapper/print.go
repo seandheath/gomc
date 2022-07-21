@@ -19,11 +19,11 @@ func (m *Map) print(width, height int) []byte {
 		return s.Bytes()
 	}
 
-	if m.debug {
+	if m.Debug {
 		s.WriteString("Area: " + m.room.area.Name + "\n")
-		s.WriteString("Name: " + m.room.name + "\n")
-		s.WriteString(fmt.Sprintf("ID: %d\n", m.room.id))
-		s.WriteString("Coordinates: " + m.room.coordinates.String() + "\n")
+		s.WriteString("Name: " + m.room.Name + "\n")
+		s.WriteString(fmt.Sprintf("ID: %d\n", m.room.ID))
+		s.WriteString("Coordinates: " + m.room.Coordinates.String() + "\n")
 		s.WriteString(fmt.Sprintf("Path: %d\n", len(m.nextMoves)))
 		height -= 5
 	}
@@ -53,9 +53,9 @@ func (m *Map) print(width, height int) []byte {
 			// Gets the room at the cooridnate offset from the current room and
 			// on the same Z axis
 			rs := m.GetRoomAtCoordinates(m.room.area, Coordinates{
-				(m.room.coordinates.X - cx) + col,
-				(m.room.coordinates.Y + cy) - row,
-				m.room.coordinates.Z,
+				(m.room.Coordinates.X - cx) + col,
+				(m.room.Coordinates.Y + cy) - row,
+				m.room.Coordinates.Z,
 			})
 			if len(rs) <= 0 {
 				// No room
@@ -142,6 +142,7 @@ func (r *Room) MapStrings() [][]byte {
 				rs[2][1] = '|'
 			}
 		}
+		rs[1][1] = 'o'
 	}
 
 	return rs

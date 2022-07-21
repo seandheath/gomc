@@ -47,7 +47,7 @@ func (m *Map) MoveDone(t *trigger.Trigger) {
 func (m *Map) FindRoom(name string, exits string) []*Room {
 	rl := []*Room{}
 	for _, r := range m.rooms {
-		if r.name == name && r.exitString == exits {
+		if r.Name == name && r.ExitString == exits {
 			rl = append(rl, r)
 		}
 	}
@@ -68,7 +68,9 @@ func (m *Map) checkMove(move Direction) *Room {
 	}
 
 	if move == Recall {
-		return m.recall
+		if m.rooms[m.Recall] != nil {
+			return m.rooms[m.Recall]
+		}
 	}
 
 	// This room doesn't have an exit in that direction...
@@ -81,7 +83,7 @@ func (m *Map) checkMove(move Direction) *Room {
 		} else {
 			// We've got an exit but don't know what room is there
 			// possible room based on coordinates
-			c := m.GetCoordinatesFromDir(m.room.coordinates, move)
+			c := m.GetCoordinatesFromDir(m.room.Coordinates, move)
 			prc := m.GetRoomAtCoordinates(m.room.area, c)
 			if len(prc) == 1 {
 				// There is one room at the coordinates specified, let's check if we're in it
@@ -101,7 +103,7 @@ func (m *Map) checkMove(move Direction) *Room {
 				}
 			}
 			// None of the possible rooms matched
-			if m.mapping {
+			if m.Mapping {
 				// Add a new room
 				return m.AddRoomFromMove(move)
 			}
@@ -126,7 +128,7 @@ func (m *Map) checkRooms(l []*Room) *Room {
 // by the map. If they match, we'll return true.
 func (m *Map) checkRoom(r *Room) bool {
 	// Currently only checking name and exit string
-	if (r.name == m.rmName) && (r.exitString == m.rmExitString) {
+	if (r.Name == m.rmName) && (r.ExitString == m.rmExitString) {
 		return true
 	}
 	return false
@@ -141,8 +143,9 @@ func (m *Map) MoveFail(t *trigger.Trigger) {
 // MoveRecall moves the user to the `recall` room saved in the map. The `recall`
 // room can be set using the `#map set recall <id>` command.
 func (m *Map) MoveRecall(t *trigger.Trigger) {
-	m.room = m.recall
-	m.Show("map")
+	if _, ok := m.rooms[m.Recall]; ok {
+		m.room = m.rooms[m.Recall]
+	}
 }
 
 // Clears the pending moves
