@@ -116,6 +116,33 @@ func (m *Map) print(width, height int) []byte {
 	return s.Bytes() // You should at least have a bunch of spaces and newlines
 }
 
+func getExitChar(r *Room, dir Direction) byte {
+	switch dir {
+	case North, East, South, West:
+		nr := r.exits[dir]
+		if nr != nil {
+			if nr.area != r.area {
+				return '?'
+			}
+		}
+	}
+	switch dir {
+	case Up:
+		return '^'
+	case North:
+		return '|'
+	case East:
+		return '-'
+	case South:
+		return '|'
+	case West:
+		return '-'
+	case Down:
+		return 'v'
+	}
+	return ' '
+}
+
 // Each room is represented by a 3x3 array of characters indicating exits
 func (r *Room) MapStrings() [][]byte {
 	rs := make([][]byte, 3)
@@ -129,17 +156,17 @@ func (r *Room) MapStrings() [][]byte {
 		for dir := range r.exits {
 			switch dir {
 			case Up:
-				rs[0][0] = '^'
+				rs[0][2] = getExitChar(r, Up)
 			case North:
-				rs[0][1] = '|'
+				rs[0][1] = getExitChar(r, North)
 			case West:
-				rs[1][0] = '-'
+				rs[1][0] = getExitChar(r, West)
 			case East:
-				rs[1][2] = '-'
+				rs[1][2] = getExitChar(r, East)
 			case Down:
-				rs[2][0] = 'v'
+				rs[2][0] = getExitChar(r, Down)
 			case South:
-				rs[2][1] = '|'
+				rs[2][1] = getExitChar(r, South)
 			}
 		}
 		rs[1][1] = 'o'

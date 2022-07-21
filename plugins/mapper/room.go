@@ -1,6 +1,9 @@
 package mapper
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Coordinates struct {
 	X int `yaml:"x"`
@@ -29,7 +32,7 @@ func (m *Map) NewRoom(a *Area, name, exits string, c Coordinates) *Room {
 	r.exits = GetExits(exits)
 	r.ExitIDs = GetExitIDs(r.exits)
 	r.Tags = map[string]string{}
-	r.ExitString = exits
+	r.ExitString = strings.TrimSpace(exits)
 	m.AddRoom(r)
 	a.AddRoom(r)
 	return r

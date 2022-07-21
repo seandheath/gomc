@@ -70,7 +70,7 @@ func Init(cli *client.Client, file string) *plugin.Config {
 	M = NewMap()
 
 	// TODO load map from yaml
-	addCommands(C, M)
+	addCommands(M)
 	C.AddFunction("MoveDone", M.MoveDone)
 	C.AddFunction("MoveFail", M.MoveFail)
 	C.AddFunction("MoveRecall", M.MoveRecall)
@@ -101,6 +101,7 @@ func SaveMap(m *Map, path string) {
 	_, err = w.Write(data)
 	if err != nil {
 		C.Print("\nMAP: Error writing map to file: " + err.Error())
+		return
 	}
 	C.Print("\nMAP: Saved map to file: " + path)
 }
@@ -109,23 +110,27 @@ func (m *Map) Load(path string) {
 	f, err := os.Open(path)
 	if err != nil {
 		C.Print("\nMAP: Unable to load map data from file: " + err.Error())
+		return
 	}
 	defer f.Close()
 
 	r, err := gzip.NewReader(f)
 	if err != nil {
 		C.Print("\nMAP: Unable to decompress map data from file: " + err.Error())
+		return
 	}
 	defer r.Close()
 
 	data, err := io.ReadAll(r)
 	if err != nil {
 		C.Print("\nMAP: Unable to read map data from file: " + err.Error())
+		return
 	}
 
 	err = yaml.Unmarshal(data, m)
 	if err != nil {
 		C.Print("\nMAP: Unable to unmarshal map data from file contents: " + err.Error())
+		return
 	}
 	m.Rebuild()
 	C.Print("\nMAP: Loaded " + path)

@@ -22,6 +22,7 @@ type Character struct {
 	MaxSpirit     int
 	CurrentEnd    int
 	MaxEnd        int
+	PKFlag        bool
 }
 
 var Config *plugin.Config
@@ -53,6 +54,9 @@ func Init(c *client.Client, file string) *plugin.Config {
 	// Sum damage up and show it at the beginning of the line
 	C.AddAction(trigger.NewTrigger(`(\[ (?P<landed>\d+) of (?P<total>\d+) \].+)?(tickl|graz|scratch|bruis|sting|wound|shend|scath|pummel|pummell|batter|splinter|disfigur|fractur|lacerat|RUPTUR|MUTILAT|DEHISC|MAIM|DISMEMBER|SUNDER|CREMAT|EVISCERAT|RAVAG|IMMOLAT|LIQUIFY|LIQUIFI|VAPORIZ|ATOMIZ|OBLITERAT|ETHEREALIZ|ERADICAT)(s|S|e|E|es|ES|ed|ED|ing|ING)? \((?P<damage>\d+)\) `, DamageLine))
 	C.AddAction(trigger.NewTrigger(`^The closed (?P<door>.+) block\(s\) your passage (?P<direction>.+)\.$`, OpenDoor))
+	C.AddFunction("ReplyPrompt", ReplyPrompt)
+	C.AddFunction("PoolPrompt", PoolPrompt)
+	C.AddFunction("CombatPrompt", CombatPrompt)
 
 	return Config
 }
@@ -105,4 +109,20 @@ func PoolPrompt(t *trigger.Trigger) {
 	My.MaxSpirit = getResult("ms", t.Results)
 	My.CurrentEnd = getResult("ce", t.Results)
 	My.MaxEnd = getResult("me", t.Results)
+}
+
+func ReplyPrompt(t *trigger.Trigger) {
+	My.Exp = getResult("exp", t.Results)
+	My.Gold = getResult("gold", t.Results)
+	My.Align = getResult("align", t.Results)
+	My.Lag = getResult("lag", t.Results)
+	if _, ok := t.Results["pk"]; ok {
+		My.PKFlag = true
+	} else {
+		My.PKFlag = false
+	}
+}
+
+func CombatPrompt(t *trigger.Trigger) {
+	return //TODO
 }

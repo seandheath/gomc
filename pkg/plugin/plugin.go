@@ -8,11 +8,13 @@ import (
 )
 
 type Config struct {
-	Actions   map[string]string `yaml:"actions"` // Actions to be registered
-	Aliases   map[string]string `yaml:"aliases"` // Aliases to be registered
-	Grid      Grid              `yaml:"grid"`
-	Windows   map[string]Window `yaml:"windows"` // Windows to be registered
-	Functions map[string]trigger.Func
+	Actions        map[string]string `yaml:"actions"` // Actions to be registered
+	Aliases        map[string]string `yaml:"aliases"` // Aliases to be registered
+	Grid           Grid              `yaml:"grid"`
+	Windows        map[string]Window `yaml:"windows"` // Windows to be registered
+	Functions      map[string]trigger.Func
+	CredentialFile string `yaml:"credentialfile"`
+	AutoLogin      string `yaml:"autologin"`
 }
 
 type Window struct {

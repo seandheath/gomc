@@ -140,3 +140,16 @@ func (m *Map) GetCoordinatesFromDir(c Coordinates, move Direction) Coordinates {
 	C.Print("Error creating coordinates")
 	return Coordinates{}
 }
+
+func (m *Map) Unlink(room *Room, dir Direction, both bool) {
+	if room != nil {
+		if r, ok := room.exits[dir]; ok {
+			if r != nil && both {
+				// There is a room there now, we'll unlink us from them
+				// TODO might want to have a one-way here?
+				r.exits[reverse[dir]] = nil
+			}
+			room.exits[dir] = nil
+		}
+	}
+}
