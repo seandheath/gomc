@@ -24,6 +24,15 @@ const (
 	Recall Direction = "recall"
 )
 
+var shortdirs = map[Direction]byte{
+	North: 'n',
+	East:  'e',
+	South: 's',
+	West:  'w',
+	Up:    'u',
+	Down:  'd',
+}
+
 var dirmap = map[string]Direction{
 	"n":      North,
 	"north":  North,
@@ -136,4 +145,5 @@ func (m *Map) Load(path string) {
 	}
 	m.Rebuild()
 	C.Print("\nMAP: Loaded " + path)
+	m.Show("map")
 }

@@ -90,12 +90,12 @@ func (m *Map) MapDoor(t *trigger.Trigger) {
 		// make sure we have a valid direction
 		if dir, ok := dirmap[t.Results["dir"]]; ok {
 			open := t.Results["open"]
-			doorName := t.Results["door"]
+			name := t.Results["door"]
 			locked := strings.Contains(open, "lock")
-			addDoor(m.room, dir, doorName, locked)
+			addDoor(m.room, dir, name, locked)
 			if r, ok := m.room.exits[dir]; ok {
 				if r != nil {
-					addDoor(r, reverse[dir], doorName, locked)
+					addDoor(r, reverse[dir], name, locked)
 				}
 			}
 		}
@@ -103,7 +103,7 @@ func (m *Map) MapDoor(t *trigger.Trigger) {
 	}
 }
 
-func addDoor(room *Room, dir Direction, doorName string, locked bool) {
+func addDoor(room *Room, dir Direction, name string, locked bool) {
 
 	if d, ok := room.Doors[dir]; ok {
 		// If we have a door but it's not locked and we saw a lock string
@@ -112,6 +112,9 @@ func addDoor(room *Room, dir Direction, doorName string, locked bool) {
 			d.Locked = true
 		}
 	} else {
-		room.Doors[dir] = &Door{"open " + doorName, locked}
+		room.Doors[dir] = &Door{
+			Name:   name,
+			Locked: locked,
+		}
 	}
 }

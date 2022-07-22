@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/seandheath/gomc/pkg/trigger"
 )
@@ -32,10 +33,61 @@ func addCommands(m *Map) {
 	C.AddAlias(`^#map link (?P<dir>(n|e|s|w|u|d)) (?P<id>\d+)$`, m.LinkDirCmd)
 	C.AddAlias(`^#map rmlink (?P<dir>(n|e|s|w|u|d))$`, m.UnlinkDirCmd) // bi-directional
 	C.AddAlias(`^#map rmexit (?P<dir>(n|e|s|w|u|d))$`, m.RmExitCmd)    // single
+	C.AddAlias(`^#map tag add (?P<tag>.+)$`, m.TagAddCmd)
+	C.AddAlias(`^#map tag delete (?P<tag>.+)$`, m.TagDeleteCmd)
+	C.AddAlias(`^#map tag show$`, m.TagShowCmd)
 
 	// Move commands
 	C.AddAlias("^(?P<move>north|east|south|west|up|down|lo|loo|look|map|rec|reca|recal|recall)$", m.CaptureMoveCmd)
 	C.AddAlias(`^(?P<speedwalk>speedwalk)? ?(?P<steps>(\d*(n|e|s|w|u|d))+)$`, m.CaptureMovesCmd)
+	C.AddAlias(`^#map goid (?P<id>\d+)$`, m.GoIDCmd)
+	C.AddAlias(`^#map gotag (?P<tag>\d+)$`, m.GoTagCmd)
+}
+
+func (m *Map) GoIDCmd(t *trigger.Trigger) {
+	if m.room == nil {
+		C.Print("\nMAP: I don't know where you are, so I can't go there.")
+		return
+	}
+	start := m.room
+	id, err := strconv.Atoi(t.Results["id"])
+	if err != nil {
+		C.Print("\nMAP: Invalid ID: " + t.Results["id"])
+		return
+	}
+	finish := m.GetRoom(id)
+	path := GetPath(start, finish)
+	C.Parse(string(path))
+	C.Print("Found path: " + string(path))
+
+}
+func (m *Map) GoTagCmd(t *trigger.Trigger) {
+
+}
+
+func (m *Map) TagShowCmd(t *trigger.Trigger) {
+	if m.room != nil {
+		C.Print("\nTags: " + strings.Join(m.room.Tags, ", "))
+	}
+}
+func (m *Map) TagAddCmd(t *trigger.Trigger) {
+	if m.room != nil {
+		m.room.Tags = append(m.room.Tags, t.Results["tag"])
+		C.Print("\nTag added: " + t.Results["tag"])
+	}
+}
+
+func (m *Map) TagDeleteCmd(t *trigger.Trigger) {
+	if m.room != nil {
+		for i, tag := range m.room.Tags {
+			if tag == t.Results["tag"] {
+				m.room.Tags = append(m.room.Tags[:i], m.room.Tags[i+1:]...)
+				C.Print("\nTag deleted: " + t.Results["tag"])
+				return
+			}
+		}
+		C.Print("\nTag not found: " + t.Results["tag"])
+	}
 }
 
 func (m *Map) RmExitCmd(t *trigger.Trigger) {

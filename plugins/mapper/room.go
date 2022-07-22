@@ -12,7 +12,7 @@ type Coordinates struct {
 }
 
 type Door struct {
-	Open   string `yaml:"open"`
+	Name   string `yaml:"name"`
 	Locked bool   `yaml:"locked"`
 }
 
@@ -25,7 +25,7 @@ type Room struct {
 	ExitString  string              `yaml:"exitString"`
 	area        *Area               // The parent area of this room
 	Coordinates Coordinates         `yaml:"coordinates"` // The coordinates of this room
-	Tags        map[string]string   `yaml:"tags"`        // List of key:value flags for this room
+	Tags        []string            `yaml:"tags"`        // List of key:value flags for this room
 	//extraIdentifiers map[string]string `yaml:"identifier"`  // A list of key:value identifiers for this room
 }
 
@@ -37,7 +37,7 @@ func (m *Map) NewRoom(a *Area, name, exits string, c Coordinates) *Room {
 	r.Coordinates = c
 	r.exits = GetExits(exits)
 	r.Doors = map[Direction]*Door{}
-	r.Tags = map[string]string{}
+	r.Tags = []string{}
 	r.ExitString = strings.TrimSpace(exits)
 	m.AddRoom(r)
 	a.AddRoom(r)
