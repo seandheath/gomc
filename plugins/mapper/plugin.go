@@ -71,18 +71,19 @@ func Init(cli *client.Client, file string) *plugin.Config {
 
 	// TODO load map from yaml
 	addCommands(M)
-	C.AddFunction("MoveDone", M.MoveDone)
-	C.AddFunction("MoveFail", M.MoveFail)
-	C.AddFunction("MoveRecall", M.MoveRecall)
-	C.AddFunction("MoveClear", M.MoveClear)
-
-	C.AddActionFunc(`^(?P<name>.+) \[ exits: (?P<exits>\(?(north)?\)? ?\(?(east)?\)? ?\(?(south)?\)? ?\(?(west)?\)? ?\(?(up)?\)? ?\(?(down)?\)?) ?\]$`, M.MoveDone)
+	C.AddAction(`^(?P<name>.+) \[ exits: (?P<exits>\(?(north)?\)? ?\(?(east)?\)? ?\(?(south)?\)? ?\(?(west)?\)? ?\(?(up)?\)? ?\(?(down)?\)?) ?\]$`, M.MoveDone)
 
 	Config = cfg
+	Config.Functions["MoveDone"] = M.MoveDone
+	Config.Functions["MoveFail"] = M.MoveFail
+	Config.Functions["MoveRecall"] = M.MoveRecall
+	Config.Functions["MoveClear"] = M.MoveClear
+	Config.Functions["MapDoor"] = M.MapDoor
 	return Config
 }
 
 func SaveMap(m *Map, path string) {
+	m.PrepareSave()
 	data, err := yaml.Marshal(m)
 	if err != nil {
 		C.Print("\nMAP: Unable to marshal map yaml for saving: " + err.Error())
@@ -107,6 +108,7 @@ func SaveMap(m *Map, path string) {
 }
 
 func (m *Map) Load(path string) {
+	m.Reset()
 	f, err := os.Open(path)
 	if err != nil {
 		C.Print("\nMAP: Unable to load map data from file: " + err.Error())

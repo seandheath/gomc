@@ -6,7 +6,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"regexp"
 	"time"
 
 	"code.rocketnine.space/tslocum/cview"
@@ -17,10 +16,6 @@ import (
 const (
 	DEADLINE = time.Millisecond * 20
 )
-
-const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
-
-var ansiRegexp = regexp.MustCompile(ansi)
 
 // ConnectCmd takes a string from the user and attempts to ConnectCmd to the mud server.
 // If the connection is successful then a goroutine is launched to handle the connection.
@@ -89,7 +84,10 @@ func (c *Client) handleData(b []byte) (int, error) {
 		c.RawLine = line
 		sline := cview.StripTags(c.RawLine, true, true)
 		c.TextLine = util.TrimEnd(util.SwapSemi(sline))
-		c.CheckTriggers(c.actions, string(c.TextLine))
+		ts := c.CheckTriggers(c.actions, string(c.TextLine))
+		for _, t := range ts {
+			t.Do()
+		}
 		if c.Gag {
 			c.Gag = false
 		} else {

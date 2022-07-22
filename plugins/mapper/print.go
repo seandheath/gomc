@@ -94,7 +94,7 @@ func (m *Map) print(width, height int) []byte {
 			rs := ma[row][col].MapStrings()
 			// We have a collision so we'll mark an asterisk on top right
 			if cl[row][col] {
-				sa[0][2] = '*'
+				sa[0][0] = '*'
 			}
 			if row == cy && col == cx {
 				// At the center room
@@ -126,19 +126,18 @@ func getExitChar(r *Room, dir Direction) byte {
 			}
 		}
 	}
+	if _, ok := r.Doors[dir]; ok {
+		return '+'
+	}
 	switch dir {
 	case Up:
 		return '^'
-	case North:
-		return '|'
-	case East:
-		return '-'
-	case South:
-		return '|'
-	case West:
-		return '-'
 	case Down:
 		return 'v'
+	case North, South:
+		return '|'
+	case East, West:
+		return '-'
 	}
 	return ' '
 }

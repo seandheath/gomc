@@ -45,15 +45,15 @@ func Init(c *client.Client, file string) *plugin.Config {
 	initFootpad()
 	ReplyQ = trigger.NewQueue(`^\[Reply:`)
 	DeadQ = trigger.NewQueue(`is dead!$`)
-	C.AddAction(ReplyQ.Trigger)
-	C.AddAction(DeadQ.Trigger)
+	C.AddActionTrigger(ReplyQ.Trigger)
+	C.AddActionTrigger(DeadQ.Trigger)
 
 	abc := initAutobuff()
 	Config = plugin.Merge(cfg, abc)
 
 	// Sum damage up and show it at the beginning of the line
-	C.AddAction(trigger.NewTrigger(`(\[ (?P<landed>\d+) of (?P<total>\d+) \].+)?(tickl|graz|scratch|bruis|sting|wound|shend|scath|pummel|pummell|batter|splinter|disfigur|fractur|lacerat|RUPTUR|MUTILAT|DEHISC|MAIM|DISMEMBER|SUNDER|CREMAT|EVISCERAT|RAVAG|IMMOLAT|LIQUIFY|LIQUIFI|VAPORIZ|ATOMIZ|OBLITERAT|ETHEREALIZ|ERADICAT)(s|S|e|E|es|ES|ed|ED|ing|ING)? \((?P<damage>\d+)\) `, DamageLine))
-	C.AddAction(trigger.NewTrigger(`^The closed (?P<door>.+) block\(s\) your passage (?P<direction>.+)\.$`, OpenDoor))
+	C.AddActionTrigger(trigger.NewTrigger(`(\[ (?P<landed>\d+) of (?P<total>\d+) \].+)?(tickl|graz|scratch|bruis|sting|wound|shend|scath|pummel|pummell|batter|splinter|disfigur|fractur|lacerat|RUPTUR|MUTILAT|DEHISC|MAIM|DISMEMBER|SUNDER|CREMAT|EVISCERAT|RAVAG|IMMOLAT|LIQUIFY|LIQUIFI|VAPORIZ|ATOMIZ|OBLITERAT|ETHEREALIZ|ERADICAT)(s|S|e|E|es|ES|ed|ED|ing|ING)? \((?P<damage>\d+)\) `, DamageLine))
+	C.AddActionTrigger(trigger.NewTrigger(`^The closed (?P<door>.+) block\(s\) your passage (?P<direction>.+)\.$`, OpenDoor))
 	C.AddFunction("ReplyPrompt", ReplyPrompt)
 	C.AddFunction("PoolPrompt", PoolPrompt)
 	C.AddFunction("CombatPrompt", CombatPrompt)

@@ -1,6 +1,10 @@
 package mapper
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/seandheath/gomc/pkg/trigger"
+)
 
 // AddRoomFromMove takes a direction
 func (m *Map) AddRoomFromMove(move Direction) *Room {
@@ -42,10 +46,14 @@ func (m *Map) AddRoomFromMove(move Direction) *Room {
 func (m *Map) linkRooms(from *Room, to *Room, move Direction) {
 	// Add the exit to the from room
 	from.exits[move] = to
-	from.ExitIDs[move] = to.ID
 	// Add the exit to the to room
 	to.exits[reverse[move]] = from
-	to.ExitIDs[reverse[move]] = from.ID
+
+	// If the room we're coming from has a door at that exit then we need to
+	// add the door to this room's door array as well
+	if door, ok := to.Doors[reverse[move]]; ok {
+		from.Doors[move] = door
+	}
 }
 
 func GetExits(exits string) map[Direction]*Room {
@@ -75,3 +83,35 @@ func GetExitIDs(exits map[Direction]*Room) map[Direction]int {
 
 // TODO implement ShiftRoom
 func (m *Map) ShiftRoom(room *Room, direction Direction) *Room { return nil }
+
+func (m *Map) MapDoor(t *trigger.Trigger) {
+	// only auto-add doors if we're mapping
+	if m.Mapping {
+		// make sure we have a valid direction
+		if dir, ok := dirmap[t.Results["dir"]]; ok {
+			open := t.Results["open"]
+			doorName := t.Results["door"]
+			locked := strings.Contains(open, "lock")
+			addDoor(m.room, dir, doorName, locked)
+			if r, ok := m.room.exits[dir]; ok {
+				if r != nil {
+					addDoor(r, reverse[dir], doorName, locked)
+				}
+			}
+		}
+		m.Show("map")
+	}
+}
+
+func addDoor(room *Room, dir Direction, doorName string, locked bool) {
+
+	if d, ok := room.Doors[dir]; ok {
+		// If we have a door but it's not locked and we saw a lock string
+		// we need to add a lock to the door
+		if !d.Locked && locked {
+			d.Locked = true
+		}
+	} else {
+		room.Doors[dir] = &Door{"open " + doorName, locked}
+	}
+}

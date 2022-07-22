@@ -54,17 +54,17 @@ func initAutobuff() *plugin.Config {
 	// Also map the activation strings to the buff names
 	for name, buff := range abilities {
 		for _, activation := range buff.Activation {
-			activations[activation] = name                      // Map the activation string
-			C.AddAction(trigger.NewTrigger(activation, BuffUp)) // Create the action
+			activations[activation] = name                             // Map the activation string
+			C.AddActionTrigger(trigger.NewTrigger(activation, BuffUp)) // Create the action
 		}
 	}
-	C.AddActionFunc("^You are no longer affected by: (.+)\\.$", BuffDown)
-	C.AddActionFunc("^You cannot perform (.+) abilities again yet", PreventUsed)
-	C.AddActionFunc("^You may again perform (.+) abilities", PreventAvailable)
+	C.AddAction("^You are no longer affected by: (.+)\\.$", BuffDown)
+	C.AddAction("^You cannot perform (.+) abilities again yet", PreventUsed)
+	C.AddAction("^You may again perform (.+) abilities", PreventAvailable)
 	//C.AddAction("^Your botanswer is: autobuff done", func(t *trigger.Trigger) { attempting = false })
-	C.AddAliasFunc("^spel$", CheckBuffs)
-	C.AddAliasFunc("^abon$", AutobuffOn)
-	C.AddAliasFunc("^aboff$", AutobuffOff)
+	C.AddAlias("^spel$", CheckBuffs)
+	C.AddAlias("^abon$", AutobuffOn)
+	C.AddAlias("^aboff$", AutobuffOff)
 
 	return cfg
 }

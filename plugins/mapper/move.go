@@ -16,10 +16,12 @@ func (m *Map) MoveDone(t *trigger.Trigger) {
 	m.rmName = t.Results["name"]
 	m.rmExitString = stripParen.ReplaceAllString(t.Results["exits"], "")
 	if len(m.nextMoves) > 0 {
+		move := m.nextMoves[0]
+		m.nextMoves = m.nextMoves[1:]
 		// We should have all the information about the new room - we can check
 		// if it matches what we expect to see. If it matches then we'll move
 		// the map to the new room.
-		nr := m.checkMove(m.nextMoves[0])
+		nr := m.checkMove(move)
 		if nr != nil {
 			m.room = nr
 		} else {
@@ -39,7 +41,6 @@ func (m *Map) MoveDone(t *trigger.Trigger) {
 				m.room = pr[0]
 			}
 		}
-		m.nextMoves = m.nextMoves[1:]
 		m.Show("map")
 	}
 }

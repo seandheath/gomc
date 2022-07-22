@@ -45,6 +45,10 @@ func ReadConfig(cfg string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Have to register functions before aliases or actions
+	if p.Functions == nil {
+		p.Functions = map[string]trigger.Func{}
+	}
 	if p.Actions == nil {
 		p.Actions = map[string]string{}
 	}
@@ -53,9 +57,6 @@ func ReadConfig(cfg string) (*Config, error) {
 	}
 	if p.Windows == nil {
 		p.Windows = map[string]Window{}
-	}
-	if p.Functions == nil {
-		p.Functions = map[string]trigger.Func{}
 	}
 	return p, nil
 }

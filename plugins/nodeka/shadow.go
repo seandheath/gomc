@@ -10,12 +10,12 @@ var shadowTarget string
 var shadowTrigger *trigger.Trigger
 
 func initShadow() {
-	shadowTrigger = C.AddActionFunc(`^Shadowing, you sense the way is \[ (?P<dir>north|east|south|west|up|down|right here)`, shadowDir)
+	shadowTrigger = C.AddAction(`^Shadowing, you sense the way is \[ (?P<dir>north|east|south|west|up|down|right here)`, shadowDir)
 	shadowTrigger.Enabled = false
 
-	C.AddActionFunc(`^You end your shadow tactics`, shadowOff)
-	C.AddAliasFunc(`^sk (?P<target>.+)$`, shadowHunt)
-	C.AddAliasFunc(`^sf (?P<target>.+)$`, shadowFind)
+	C.AddAction(`^You end your shadow tactics`, shadowOff)
+	C.AddAlias(`^sk (?P<target>.+)$`, shadowHunt)
+	C.AddAlias(`^sf (?P<target>.+)$`, shadowFind)
 }
 
 func shadowHunt(t *trigger.Trigger) {

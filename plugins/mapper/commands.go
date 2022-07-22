@@ -10,32 +10,32 @@ import (
 
 func addCommands(m *Map) {
 	// Map commands
-	C.AddAliasFunc("^#map reset$", m.ResetCmd)
-	C.AddAliasFunc("^#map new map$", m.NewMapCmd)
-	C.AddAliasFunc("^#map show (?P<window>.+)$", m.ShowCmd)
-	C.AddAliasFunc("^#map save (?P<path>.+)$", m.SaveCmd)
-	C.AddAliasFunc("^#map load (?P<path>.+)$", m.LoadCmd)
+	C.AddAlias("^#map reset$", m.ResetCmd)
+	C.AddAlias("^#map new map$", m.NewMapCmd)
+	C.AddAlias("^#map show (?P<window>.+)$", m.ShowCmd)
+	C.AddAlias("^#map save (?P<path>.+)$", m.SaveCmd)
+	C.AddAlias("^#map load (?P<path>.+)$", m.LoadCmd)
 
 	// Area commands
-	C.AddAliasFunc("^#map new area (?P<name>.+)$", m.NewAreaCmd)
-	C.AddAliasFunc("^#map na (?P<name>.+)$", m.NewAreaCmd)
+	C.AddAlias("^#map new area (?P<name>.+)$", m.NewAreaCmd)
+	C.AddAlias("^#map na (?P<name>.+)$", m.NewAreaCmd)
 
 	// Room commands
-	C.AddAliasFunc("^#map new room (?P<move>n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
-	C.AddAliasFunc("^#map nr (?P<move>n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
+	C.AddAlias("^#map new room (?P<move>n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
+	C.AddAlias("^#map nr (?P<move>n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
 
 	// Mapping commands
-	C.AddAliasFunc("^#map undo$", m.UndoCmd)
-	C.AddAliasFunc("^#map start$", m.StartCmd)
-	C.AddAliasFunc("^#map stop$", m.StopCmd)
-	C.AddAliasFunc("^#map autolink (?P<set>on|off)$", m.AutoLinkCmd)
-	C.AddAliasFunc(`^#map link (?P<dir>(n|e|s|w|u|d)) (?P<id>\d+)$`, m.LinkDirCmd)
-	C.AddAliasFunc(`^#map rmlink (?P<dir>(n|e|s|w|u|d))$`, m.UnlinkDirCmd) // bi-directional
-	C.AddAliasFunc(`^#map rmexit (?P<dir>(n|e|s|w|u|d))$`, m.RmExitCmd)    // single
+	C.AddAlias("^#map undo$", m.UndoCmd)
+	C.AddAlias("^#map start$", m.StartCmd)
+	C.AddAlias("^#map stop$", m.StopCmd)
+	C.AddAlias("^#map autolink (?P<set>on|off)$", m.AutoLinkCmd)
+	C.AddAlias(`^#map link (?P<dir>(n|e|s|w|u|d)) (?P<id>\d+)$`, m.LinkDirCmd)
+	C.AddAlias(`^#map rmlink (?P<dir>(n|e|s|w|u|d))$`, m.UnlinkDirCmd) // bi-directional
+	C.AddAlias(`^#map rmexit (?P<dir>(n|e|s|w|u|d))$`, m.RmExitCmd)    // single
 
 	// Move commands
-	C.AddAliasFunc("^(?P<move>north|east|south|west|up|down|lo|loo|look|map|rec|reca|recal|recall)$", m.CaptureMoveCmd)
-	C.AddAliasFunc(`^(?P<speedwalk>speedwalk)? ?(?P<steps>(\d*(n|e|s|w|u|d))+)$`, m.CaptureMovesCmd)
+	C.AddAlias("^(?P<move>north|east|south|west|up|down|lo|loo|look|map|rec|reca|recal|recall)$", m.CaptureMoveCmd)
+	C.AddAlias(`^(?P<speedwalk>speedwalk)? ?(?P<steps>(\d*(n|e|s|w|u|d))+)$`, m.CaptureMovesCmd)
 }
 
 func (m *Map) RmExitCmd(t *trigger.Trigger) {

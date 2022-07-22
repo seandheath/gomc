@@ -45,36 +45,60 @@ func NewClient() *Client {
 	return c
 }
 
-func (c *Client) AddAction(t *trigger.Trigger) {
-	c.actions = c.addTrigger(c.actions, t)
+func (c *Client) AddActionTrigger(t *trigger.Trigger) {
+	c.actions = append(c.actions, t)
 }
-func (c *Client) AddActionFunc(rs string, cmd trigger.Func) *trigger.Trigger {
+
+func (c *Client) AddAction(rs string, cmd trigger.Func) *trigger.Trigger {
 	t := trigger.NewTrigger(rs, cmd)
-	c.actions = c.addTrigger(c.actions, t)
+	c.actions = append(c.actions, t)
 	return t
 }
+
 func (c *Client) AddActionString(rs string, cmd string) *trigger.Trigger {
-	t := trigger.NewTrigger(rs, func(t *trigger.Trigger) { c.Parse(cmd) })
-	c.actions = c.addTrigger(c.actions, t)
+	t := c.addTriggerString(rs, cmd)
+	c.actions = append(c.actions, t)
 	return t
 }
-func (c *Client) AddAlias(t *trigger.Trigger) {
-	c.aliases = c.addTrigger(c.aliases, t)
+
+func (c *Client) AddAliasTrigger(t *trigger.Trigger) {
+	c.aliases = append(c.aliases, t)
 }
-func (c *Client) AddAliasFunc(rs string, cmd trigger.Func) *trigger.Trigger {
+func (c *Client) AddAlias(rs string, cmd trigger.Func) *trigger.Trigger {
 	t := trigger.NewTrigger(rs, cmd)
-	c.aliases = c.addTrigger(c.aliases, t)
+	c.aliases = append(c.aliases, t)
 	return t
 }
 func (c *Client) AddAliasString(rs string, cmd string) *trigger.Trigger {
-	t := trigger.NewTrigger(rs, func(t *trigger.Trigger) { c.Parse(cmd) })
-	c.aliases = c.addTrigger(c.aliases, t)
+	t := c.addTriggerString(rs, cmd)
+	c.aliases = append(c.aliases, t)
+	return t
+}
+
+func (c *Client) addTriggerString(rs string, cmd string) *trigger.Trigger {
+	var t *trigger.Trigger = nil
+	if strings.HasPrefix(cmd, "#func") {
+		FuncTrigger.Matches = FuncTrigger.FindStringSubmatch(cmd)
+		if len(FuncTrigger.Matches) > 0 {
+			FuncTrigger.Results = getResults(FuncTrigger.Matches, FuncTrigger.SubexpNames())
+			if f, ok := c.functions[FuncTrigger.Results["fname"]]; ok {
+				t = trigger.NewTrigger(rs, f)
+			}
+		}
+	}
+	if t == nil {
+		t = trigger.NewTrigger(rs, func(*trigger.Trigger) { c.Parse(cmd) })
+	}
 	return t
 }
 
 // Parse the string and send the result to the server
 func (c *Client) Parse(text string) {
-	if c.CheckTriggers(c.aliases, text) { // Check for aliases / commands
+	ts := c.CheckTriggers(c.aliases, text)
+	if len(ts) > 0 {
+		for _, t := range ts {
+			t.Do()
+		}
 		return
 	} else if c.conn == nil { // Not connected yet
 		c.Print("Not connected.\n")
@@ -127,14 +151,14 @@ func (c *Client) PrintTo(window string, text string) {
 }
 
 func (c *Client) LoadPlugin(name string, p *plugin.Config) {
-	for re, cmd := range p.Actions {
-		c.AddActionString(re, cmd)
+	for n, f := range p.Functions {
+		c.AddFunction(n, f)
 	}
 	for re, cmd := range p.Aliases {
 		c.AddAliasString(re, cmd)
 	}
-	for n, f := range p.Functions {
-		c.AddFunction(n, f)
+	for re, cmd := range p.Actions {
+		c.AddActionString(re, cmd)
 	}
 	for n, w := range p.Windows {
 		c.tui.AddWindow(n, w)
@@ -145,35 +169,30 @@ func (c *Client) LoadPlugin(name string, p *plugin.Config) {
 	c.plugins[name] = p
 }
 
-func (c *Client) CheckTriggers(list []*trigger.Trigger, text string) bool {
-	matched := false
+func getResults(matches []string, subexp []string) map[string]string {
+	rs := map[string]string{}
+	for i, m := range matches {
+		if i > 0 {
+			rs[subexp[i]] = m
+		}
+	}
+	return rs
+}
+
+func (c *Client) CheckTriggers(list []*trigger.Trigger, text string) []*trigger.Trigger {
+	rv := []*trigger.Trigger{}
 	for _, t := range list {
 		if t.Enabled {
-			t.Matches = t.FindStringSubmatch(string(text))
+			t.Matches = t.FindStringSubmatch(text)
 			if len(t.Matches) > 0 {
-				matched = true
 				if len(t.SubexpNames()) > 0 {
-					for i, m := range t.Matches {
-						if i > 0 {
-							t.Results[t.SubexpNames()[i]] = m
-						}
-					}
+					t.Results = getResults(t.Matches, t.SubexpNames())
 				}
-				t.Do()
+				rv = append(rv, t)
 			}
 		}
 	}
-	return matched
-}
-
-func (c *Client) getFunc(cmd string) trigger.Func {
-
-	return nil
-}
-
-// This function adds a trigger to the provided list and returns the new trigger
-func (c *Client) addTrigger(list []*trigger.Trigger, t *trigger.Trigger) []*trigger.Trigger {
-	return append(list, t)
+	return rv
 }
 
 func (c *Client) BaseActionCmd(t *trigger.Trigger) {

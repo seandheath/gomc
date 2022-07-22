@@ -51,16 +51,33 @@ func (m *Map) Rebuild() {
 	}
 }
 
+func (m *Map) PrepareSave() {
+	for _, r := range m.rooms {
+		if r != nil {
+			r.ExitIDs = map[Direction]int{}
+			for dir, nr := range r.exits {
+				if nr != nil {
+					r.ExitIDs[dir] = nr.ID
+				} else {
+					r.ExitIDs[dir] = 0
+				}
+			}
+		}
+	}
+}
+
 func (m *Map) Reset() {
+	m.Recall = 0
+	m.room = nil
 	m.Areas = map[string]*Area{}
 	m.rooms = map[int]*Room{}
+	m.nextMoves = []Direction{}
+	m.pastMoves = []Direction{}
+	m.rmExitString = ""
+	m.rmName = ""
 	m.Mapping = true
 	m.Debug = true
 	m.Autolink = true
-	m.Recall = 0
-	m.room = nil
-	m.rmExitString = ""
-	m.rmName = ""
 	C.Print("\nMap created. Add an area to start mapping. Type #map new area <name>")
 }
 

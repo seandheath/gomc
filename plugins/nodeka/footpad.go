@@ -4,8 +4,8 @@ import "github.com/seandheath/gomc/pkg/trigger"
 
 func initFootpad() {
 	initShadow()
-	C.AddAliasFunc(`^f (?P<target>.+)$`, crit)
-	C.AddActionFunc(`^You are unable to locate a weak spot`, critFail)
+	C.AddAlias(`^f (?P<target>.+)$`, crit)
+	C.AddAction(`^You are unable to locate a weak spot`, critFail)
 }
 
 var critTarget = ""
