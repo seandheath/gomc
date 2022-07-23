@@ -20,6 +20,20 @@ func NewMap() *Map {
 	return m
 }
 
+func (m *Map) GetRoomsByTag(tag string) []*Room {
+	rs := []*Room{}
+	for _, r := range m.rooms {
+		if r != nil {
+			for _, t := range r.Tags {
+				if t == tag {
+					rs = append(rs, r)
+				}
+			}
+		}
+	}
+	return rs
+}
+
 // Rebuild is called when a map is loaded from disk. It steps through all
 // the rooms and populates the exit arrays with pointers and collects all the
 // room objects into the map.rooms object
@@ -169,4 +183,8 @@ func (m *Map) Unlink(room *Room, dir Direction, both bool) {
 			room.exits[dir] = nil
 		}
 	}
+}
+
+func (m *Map) GetMST() {
+
 }

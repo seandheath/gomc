@@ -2,6 +2,7 @@ package mapper
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -40,8 +41,8 @@ func addCommands(m *Map) {
 	// Move commands
 	C.AddAlias("^(?P<move>north|east|south|west|up|down|lo|loo|look|map|rec|reca|recal|recall)$", m.CaptureMoveCmd)
 	C.AddAlias(`^(?P<speedwalk>speedwalk)? ?(?P<steps>(\d*(n|e|s|w|u|d))+)$`, m.CaptureMovesCmd)
-	C.AddAlias(`^#map goid (?P<id>\d+)$`, m.GoIDCmd)
-	C.AddAlias(`^#map gotag (?P<tag>\d+)$`, m.GoTagCmd)
+	C.AddAlias(`^#map go (?P<id>\d+)$`, m.GoIDCmd)
+	C.AddAlias(`^#map go (?P<tag>\w+)$`, m.GoTagCmd)
 }
 
 func (m *Map) GoIDCmd(t *trigger.Trigger) {
@@ -56,13 +57,36 @@ func (m *Map) GoIDCmd(t *trigger.Trigger) {
 		return
 	}
 	finish := m.GetRoom(id)
-	path := GetPath(start, finish)
+	path, len := GetPath(start, finish)
 	C.Parse(string(path))
-	C.Print("Found path: " + string(path))
-
+	C.Print(fmt.Sprintf("\nPath found, length: %d, steps: %s\n\n", len, string(path)))
 }
 func (m *Map) GoTagCmd(t *trigger.Trigger) {
+	if m.room == nil {
+		C.Print("\nMAP: I don't know where you are, so I can't go there.")
+		return
+	}
+	rms := m.GetRoomsByTag(t.Results["tag"])
+	if rms == nil {
+		C.Print("\nMAP: No rooms found with tag: " + t.Results["tag"])
+		return
+	}
+	path := []byte{}
+	length := math.MaxInt
 
+	for _, rm := range rms {
+		p, l := GetPath(m.room, rm)
+		if l < length {
+			path = p
+			length = l
+		}
+	}
+	if len(path) > 0 {
+		C.Parse(string(path))
+		C.Print(fmt.Sprintf("\nPath found, length: %d, steps: %s\n\n", length, string(path)))
+	} else {
+		C.Print("\nMAP: No path found.")
+	}
 }
 
 func (m *Map) TagShowCmd(t *trigger.Trigger) {
