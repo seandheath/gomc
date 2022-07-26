@@ -179,12 +179,10 @@ func (m *Map) Unlink(room *Room, dir Direction, both bool) {
 				// There is a room there now, we'll unlink us from them
 				// TODO might want to have a one-way here?
 				r.exits[reverse[dir]] = nil
+				delete(r.exits, reverse[dir])
 			}
 			room.exits[dir] = nil
+			delete(r.exits, dir)
 		}
 	}
-}
-
-func (m *Map) GetMST() {
-
 }

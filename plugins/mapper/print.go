@@ -1,48 +1,51 @@
 package mapper
 
 import (
-	"bytes"
 	"fmt"
 )
 
 // print takes the width and height of the desired map string and returns
 // a map layout centered on your current room in one string. The map key
 // can be found in map.md
-func (m *Map) print(width, height int) []byte {
-	s := bytes.Buffer{}
+func (m *Map) print(width, height int, unicode bool) []rune {
+	s := []rune{}
 	if m.room == nil {
 		// TODO better error message
-		s.WriteString("Map location unknown")
+		s = append(s, []rune("Map location unknown")...)
 		for i := 1; i < height; i++ {
-			s.WriteByte('\n')
+			s = append(s, '\n')
 		}
-		return s.Bytes()
+		return s
 	}
 
 	if m.Debug {
-		s.WriteString("Area: " + m.room.area.Name + "\n")
-		s.WriteString("Name: " + m.room.Name + "\n")
-		s.WriteString(fmt.Sprintf("ID: %d\n", m.room.ID))
-		s.WriteString("Coordinates: " + m.room.Coordinates.String() + "\n")
-		s.WriteString(fmt.Sprintf("Path: %d\n", len(m.nextMoves)))
-		height -= 5
+		s = append(s, []rune(fmt.Sprintf("%s:%d:%s\n", m.room.area.Name, m.room.ID, m.room.Name))...)
+		//s = append(s, []rune("Name: "+m.room.Name+"\n")...)
+		//s = append(s, []rune(fmt.Sprintf("ID: %d\n", m.room.ID))...)
+		//s = append(s, []rune("Coordinates: "+m.room.Coordinates.String()+"\n")...)
+		//s = append(s, []rune(fmt.Sprintf("Path: %d\n", len(m.nextMoves)))...)
+		height -= 1
 	}
 
-	nx := width / 3  // number of rooms we can fit into the map width
-	ny := height / 3 // number of rooms we can fit into the map height
-	cx := nx / 2     // X coordinates of the center room
-	cy := ny / 2     // Y coordinates of the center room
+	roomsize := 3
+	if unicode {
+		roomsize = 1
+	}
+	nx := width / roomsize  // number of rooms we can fit into the map width
+	ny := height / roomsize // number of rooms we can fit into the map height
+	cx := nx / 2            // X coordinates of the center room
+	cy := ny / 2            // Y coordinates of the center room
 
 	if nx <= 0 || ny <= 0 {
-		return []byte{}
+		return []rune{}
 	}
 
 	// initialize map string array
-	ma := make([][]*Room, ny)
-	cl := make([][]bool, ny)
+	roomArray := make([][]*Room, ny)
+	collisionArray := make([][]bool, ny)
 	for row := 0; row < ny; row++ {
-		ma[row] = make([]*Room, nx)
-		cl[row] = make([]bool, nx)
+		roomArray[row] = make([]*Room, nx)
+		collisionArray[row] = make([]bool, nx)
 	}
 
 	// Starting at the top left populate each room string which will consist of
@@ -59,64 +62,84 @@ func (m *Map) print(width, height int) []byte {
 			})
 			if len(rs) <= 0 {
 				// No room
-				ma[row][col] = nil
+				roomArray[row][col] = nil
 			} else if len(rs) > 1 {
 				// Multiple rooms at these coordinates, not sure how to display
 				// a collision yet but we'll figure it out... maybe we'll print
 				// the one with the shortest path to the current room or have
 				// a collision indicator on that room?
-				ma[row][col] = nil
-				cl[row][col] = true
+				roomArray[row][col] = nil
+				collisionArray[row][col] = true
 			} else {
 				// Only one room at those coordinates
-				ma[row][col] = rs[0]
-				cl[row][col] = false
+				roomArray[row][col] = rs[0]
+				collisionArray[row][col] = false
 			}
 		}
-	}
-
-	// Now we have a 2D array of rooms that will fit into the width/height
-	// provided. We need to generate a string from them. I could do all of this
-	// in the above loop, but I'd like to have the populated array for debugging
-	sa := make([][]byte, 3)
-	for i := 0; i < 3; i++ {
-		sa[i] = make([]byte, 3)
 	}
 
 	// Go through each row, col and collect the top, middle, bottom strings
 	// for each room into sa. At the end of each row, concatenate the
 	// top, middle, and bottom strings with newlines and append them to s.
 	for row := 0; row < ny; row++ {
-		sa[0] = []byte("   ")
-		sa[1] = []byte("   ")
-		sa[2] = []byte("   ")
-		for col := 0; col < nx; col++ {
-			rs := ma[row][col].MapStrings()
-			// We have a collision so we'll mark an asterisk on top right
-			if cl[row][col] {
-				sa[0][0] = '*'
-			}
-			if row == cy && col == cx {
-				// At the center room
-				rs[1][1] = '#'
-			}
-			for subrow := 0; subrow < 3; subrow++ {
-				// Each room has 3 rows
-				sa[subrow] = append(sa[subrow], rs[subrow]...)
-			}
+		center := false
+		if row == cy {
+			center = true
 		}
-		// Combine the three rows of each string into our main string
-		for i := 0; i < 3; i++ {
-			s.Write(sa[i])
-			s.WriteByte('\n')
-		}
-		//s += strings.Join(sa, "\n")
-	}
 
-	return s.Bytes() // You should at least have a bunch of spaces and newlines
+		var r []rune
+		if unicode {
+			r = getUnicodeRow(roomArray[row], center)
+		} else {
+			r = getAsciiRow(roomArray[row], collisionArray[row], center)
+		}
+		s = append(s, r...)
+	}
+	return s
 }
 
-func getExitChar(r *Room, dir Direction) byte {
+func getUnicodeRow(row []*Room, center bool) []rune {
+	rs := []rune{}
+	for col := 0; col < len(row); col++ {
+		b := UnicodeRoom(row[col])
+		rs = append(rs, b)
+
+	}
+	return rs
+}
+
+func getAsciiRow(row []*Room, collision []bool, center bool) []rune {
+	// Now we have a 2D array of rooms that will fit into the width/height
+	// provided. We need to generate a string from them. I could do all of this
+	// in the above loop, but I'd like to have the populated array for debugging
+	sa := make([][]rune, 3)
+	sa[0] = []rune{}
+	sa[1] = []rune{}
+	sa[2] = []rune{}
+	for col := 0; col < len(row); col++ {
+		rs := AsciiRoom(row[col])
+		// We have a collision so we'll mark an asterisk on top right
+		if collision[col] {
+			rs[0][0] = '*'
+		}
+		if center && col == len(row)/2 {
+			// At the center room
+			rs[1][1] = '#'
+		}
+		for subrow := 0; subrow < 3; subrow++ {
+			// Each room has 3 rows
+			sa[subrow] = append(sa[subrow], rs[subrow]...)
+		}
+	}
+	s := []rune{}
+	for i := 0; i < 3; i++ {
+		s = append(s, sa[i]...)
+		s = append(s, '\n')
+	}
+	return s
+}
+
+func getExitChar(r *Room, dir Direction) rune {
 	switch dir {
 	case North, East, South, West:
 		nr := r.exits[dir]
@@ -142,11 +165,70 @@ func getExitChar(r *Room, dir Direction) byte {
 	return ' '
 }
 
+func UnicodeRoom(r *Room) rune {
+	if r == nil {
+		return ' '
+	}
+	n := checkmap(North, r.exits)
+	e := checkmap(East, r.exits)
+	s := checkmap(South, r.exits)
+	w := checkmap(West, r.exits)
+
+	if n && e && s && w {
+		return '\u253C'
+	}
+	if n && e && s && !w {
+		return '\u251C'
+	}
+	if n && e && !s && w {
+		return '\u2534'
+	}
+	if n && e && !s && !w {
+		return '\u2514'
+	}
+	if n && !e && s && w {
+		return '\u2524'
+	}
+	if n && !e && s && !w {
+		return '\u2502'
+	}
+	if n && !e && !s && !w {
+		return '\u2575'
+	}
+	if !n && e && s && w {
+		return '\u252C'
+	}
+	if !n && e && s && !w {
+		return '\u250C'
+	}
+	if !n && e && !s && w {
+		return '\u2500'
+	}
+	if !n && e && !s && !w {
+		return '\u2576'
+	}
+	if !n && !e && s && w {
+		return '\u2510'
+	}
+	if !n && !e && s && !w {
+		return '\u2577'
+	}
+	if !n && !e && !s && w {
+		return '\u2574'
+	}
+	return ' '
+}
+
+func checkmap(d Direction, m map[Direction]*Room) bool {
+	_, ok := m[d]
+	return ok
+}
+
 // Each room is represented by a 3x3 array of characters indicating exits
-func (r *Room) MapStrings() [][]byte {
-	rs := make([][]byte, 3)
+func AsciiRoom(r *Room) [][]rune {
+	rs := make([][]rune, 3)
 	for i := 0; i < 3; i++ {
-		rs[i] = make([]byte, 3)
+		rs[i] = make([]rune, 3)
 		rs[i][0] = ' ' // Set all values to space by default
 		rs[i][1] = ' '
 		rs[i][2] = ' '
@@ -176,5 +258,6 @@ func (r *Room) MapStrings() [][]byte {
 
 func (m *Map) Show(name string) {
 	w, h := C.GetWindowSize(name)
-	C.PrintBytesTo(name, m.print(w, h))
+	s := m.print(w, h, false)
+	C.PrintTo(name, string(s))
 }
