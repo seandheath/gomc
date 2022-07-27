@@ -166,23 +166,10 @@ func (m *Map) GetCoordinatesFromDir(c Coordinates, move Direction) Coordinates {
 		return Coordinates{c.X, c.Y, c.Z + 1}
 	case Down: // Negative Z axis
 		return Coordinates{c.X, c.Y, c.Z - 1}
+	case Look:
+		return c
 	}
 	// Shouldn't get here
 	C.Print("Error creating coordinates")
 	return Coordinates{}
-}
-
-func (m *Map) Unlink(room *Room, dir Direction, both bool) {
-	if room != nil {
-		if r, ok := room.exits[dir]; ok {
-			if r != nil && both {
-				// There is a room there now, we'll unlink us from them
-				// TODO might want to have a one-way here?
-				r.exits[reverse[dir]] = nil
-				delete(r.exits, reverse[dir])
-			}
-			room.exits[dir] = nil
-			delete(r.exits, dir)
-		}
-	}
 }

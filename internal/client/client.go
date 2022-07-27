@@ -41,6 +41,7 @@ func NewClient() *Client {
 	c.functions = map[string]trigger.Func{}
 	c.plugins = map[string]*plugin.Config{}
 	c.tui = tui.NewTUI(c.Parse)
+	c.Var = map[string]string{}
 	c.cmdInit()
 	return c
 }

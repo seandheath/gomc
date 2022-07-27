@@ -92,6 +92,9 @@ func Init(cli *client.Client, file string) *plugin.Config {
 }
 
 func SaveMap(m *Map, path string) {
+	if path == "" {
+		path = "map.gz"
+	}
 	m.PrepareSave()
 	data, err := yaml.Marshal(m)
 	if err != nil {
@@ -118,6 +121,9 @@ func SaveMap(m *Map, path string) {
 
 func (m *Map) Load(path string) {
 	m.Reset()
+	if path == "" {
+		path = "map.gz"
+	}
 	f, err := os.Open(path)
 	if err != nil {
 		C.Print("\nMAP: Unable to load map data from file: " + err.Error())

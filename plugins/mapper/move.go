@@ -2,19 +2,16 @@ package mapper
 
 import (
 	"regexp"
+	"strings"
 
 	"github.com/seandheath/gomc/pkg/trigger"
 )
 
 var stripParen = regexp.MustCompile(`\(?\)?`)
 
-// checkMove executes when a trigger indicating a move is complete fires
-// this trigger needs to be set somewhere and correspond to a string
-// such as a prompt that you see after all room information scrolls
-// past
 func (m *Map) MoveDone(t *trigger.Trigger) {
 	m.rmName = t.Results["name"]
-	m.rmExitString = stripParen.ReplaceAllString(t.Results["exits"], "")
+	m.rmExitString = strings.TrimSpace(stripParen.ReplaceAllString(t.Results["exits"], ""))
 	if len(m.nextMoves) > 0 {
 		move := m.nextMoves[0]
 		m.nextMoves = m.nextMoves[1:]
@@ -64,6 +61,7 @@ func (m *Map) checkMove(move Direction) *Room {
 		if m.checkRoom(m.room) {
 			return m.room
 		} else {
+			// findroom
 			return nil
 		}
 	}
@@ -82,27 +80,13 @@ func (m *Map) checkMove(move Direction) *Room {
 			// We've already got a room at that exit, return it
 			return r
 		} else {
+			r := m.findRoom(move)
+			if r != nil {
+				return r
+			}
+
 			// We've got an exit but don't know what room is there
 			// possible room based on coordinates
-			c := m.GetCoordinatesFromDir(m.room.Coordinates, move)
-			prc := m.GetRoomAtCoordinates(m.room.area, c)
-			if len(prc) == 1 {
-				// There is one room at the coordinates specified, let's check if we're in it
-				if m.checkRoom(prc[0]) {
-					// We're in the room at those coords, add the link
-					m.linkRooms(m.room, prc[0], move)
-					return prc[0]
-				}
-			} else if len(prc) > 1 {
-				// More than one room at those coordinates, we'll need to check which one we're in
-				// returns -1 if no matches
-				r := m.checkRooms(prc)
-				if r != nil {
-					// We got a match
-					m.linkRooms(m.room, r, move)
-					return r
-				}
-			}
 			// None of the possible rooms matched
 			if m.Mapping {
 				// Add a new room
@@ -111,6 +95,29 @@ func (m *Map) checkMove(move Direction) *Room {
 		}
 	}
 	// Couldn't find a room or make one, we're lost
+	return nil
+}
+
+func (m *Map) findRoom(lastMove Direction) *Room {
+	c := m.GetCoordinatesFromDir(m.room.Coordinates, lastMove)
+	prc := m.GetRoomAtCoordinates(m.room.area, c)
+	if len(prc) == 1 {
+		// There is one room at the coordinates specified, let's check if we're in it
+		if m.checkRoom(prc[0]) {
+			// We're in the room at those coords, add the link
+			m.linkRooms(m.room, prc[0], lastMove)
+			return prc[0]
+		}
+	} else if len(prc) > 1 {
+		// More than one room at those coordinates, we'll need to check which one we're in
+		// returns -1 if no matches
+		r := m.checkRooms(prc)
+		if r != nil {
+			// We got a match
+			//m.linkRooms(m.room, r, move)
+			return r
+		}
+	}
 	return nil
 }
 
@@ -138,7 +145,10 @@ func (m *Map) checkRoom(r *Room) bool {
 // MoveFail should be linked to actions that print when a move fails, such as
 // when a character is asleep, resting, runs into a wall, etc...
 func (m *Map) MoveFail(t *trigger.Trigger) {
-	m.nextMoves = m.nextMoves[1:]
+	if len(m.nextMoves) > 0 {
+
+		m.nextMoves = m.nextMoves[1:]
+	}
 }
 
 // MoveRecall moves the user to the `recall` room saved in the map. The `recall`

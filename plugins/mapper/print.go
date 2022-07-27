@@ -27,6 +27,7 @@ func (m *Map) print(width, height int, unicode bool) []rune {
 		height -= 1
 	}
 
+	// Need an extra line to fit all the rows
 	roomsize := 3
 	if unicode {
 		roomsize = 1

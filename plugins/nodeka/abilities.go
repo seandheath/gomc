@@ -54,11 +54,11 @@ func initAutobuff() *plugin.Config {
 	// Also map the activation strings to the buff names
 	for name, buff := range abilities {
 		for _, activation := range buff.Activation {
-			activations[activation] = name                             // Map the activation string
-			C.AddActionTrigger(trigger.NewTrigger(activation, BuffUp)) // Create the action
+			activations[activation] = name                                   // Map the activation string
+			C.AddActionTrigger(trigger.NewTrigger(activation, AbilityFired)) // Create the action
 		}
 	}
-	C.AddAction("^You are no longer affected by: (.+)\\.$", BuffDown)
+	C.AddAction("^You are no longer affected by: (.+)\\.$", AbilityDown)
 	C.AddAction("^You cannot perform (.+) abilities again yet", PreventUsed)
 	C.AddAction("^You may again perform (.+) abilities", PreventAvailable)
 	//C.AddAction("^Your botanswer is: autobuff done", func(t *trigger.Trigger) { attempting = false })
@@ -78,19 +78,19 @@ func AutobuffOff(t *trigger.Trigger) {
 	autoBuffOn = false
 }
 
-var BuffUp trigger.Func = func(t *trigger.Trigger) {
-	if name, ok := activations[t.String()]; ok { // Get the buff name from the activation string map
-		if buff, ok := abilities[name]; ok { // Get the buff from our buff list
-			buff.IsActive = true // Set it to active
-			if buff.Prevention != "" {
-				activePreventions[buff.Prevention] = true
+var AbilityFired trigger.Func = func(t *trigger.Trigger) {
+	if name, ok := activations[t.String()]; ok { // Get the ab name from the activation string map
+		if ab, ok := abilities[name]; ok { // Get the buff from our buff list
+			ab.IsActive = true // Set it to active
+			if ab.Prevention != "" {
+				activePreventions[ab.Prevention] = true
 			}
 		}
 	}
 }
 
-// BuffDown handles when a buff drops, preparing it to be cast again.
-var BuffDown trigger.Func = func(t *trigger.Trigger) {
+// AbilityDown handles when a buff drops, preparing it to be cast again.
+var AbilityDown trigger.Func = func(t *trigger.Trigger) {
 	if buff, ok := abilities[t.Matches[1]]; ok {
 		buff.IsActive = false
 	}
@@ -109,10 +109,11 @@ var PreventAvailable trigger.Func = func(t *trigger.Trigger) {
 		ReplyQ.Prepend(func() { CheckBuffs(nil) })
 	}
 }
+
 var CheckBuffs trigger.Func = func(t *trigger.Trigger) {
-	for name, buff := range abilities {
-		if !buff.IsActive && !isPrevented(buff) {
-			DoBuff(name, buff)
+	for name, ab := range abilities {
+		if !ab.IsActive && !isPrevented(ab) {
+			DoAbility(name, ab)
 		}
 	}
 }
@@ -121,7 +122,7 @@ func isPrevented(buff *Ability) bool {
 	return activePreventions[buff.Prevention]
 }
 
-func DoBuff(name string, buff *Ability) {
+func DoAbility(name string, buff *Ability) {
 	// TODO: Do alignment and pool check
 	// TODO: Check prefer invoke etc...
 	if buff.Execute == "" {

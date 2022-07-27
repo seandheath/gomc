@@ -86,7 +86,7 @@ func (m *Map) ShiftRoom(room *Room, direction Direction) *Room { return nil }
 
 func (m *Map) MapDoor(t *trigger.Trigger) {
 	// only auto-add doors if we're mapping
-	if m.Mapping {
+	if m.Mapping && m.room != nil {
 		// make sure we have a valid direction
 		if dir, ok := dirmap[t.Results["dir"]]; ok {
 			open := t.Results["open"]
@@ -115,6 +115,19 @@ func addDoor(room *Room, dir Direction, name string, locked bool) {
 		room.Doors[dir] = &Door{
 			Name:   name,
 			Locked: locked,
+		}
+	}
+}
+
+func (m *Map) Unlink(room *Room, dir Direction, both bool) {
+	if room != nil {
+		if r, ok := room.exits[dir]; ok {
+			if r != nil && both {
+				// There is a room there now, we'll unlink us from them
+				// TODO might want to have a one-way here?
+				r.exits[reverse[dir]] = nil
+			}
+			room.exits[dir] = nil
 		}
 	}
 }

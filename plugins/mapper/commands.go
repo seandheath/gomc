@@ -15,8 +15,8 @@ func addCommands(m *Map) {
 	C.AddAlias("^#map reset$", m.ResetCmd)
 	C.AddAlias("^#map new map$", m.NewMapCmd)
 	C.AddAlias("^#map show (?P<window>.+)$", m.ShowCmd)
-	C.AddAlias("^#map save (?P<path>.+)$", m.SaveCmd)
-	C.AddAlias("^#map load (?P<path>.+)$", m.LoadCmd)
+	C.AddAlias("^#map save ?(?P<path>.+)?$", m.SaveCmd)
+	C.AddAlias("^#map load ?(?P<path>.+)?$", m.LoadCmd)
 
 	// Area commands
 	C.AddAlias("^#map new area (?P<name>.+)$", m.NewAreaCmd)
@@ -25,6 +25,7 @@ func addCommands(m *Map) {
 	// Room commands
 	C.AddAlias("^#map new room (?P<move>n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
 	C.AddAlias("^#map nr (?P<move>n|north|e|east|s|south|w|west|u|up|d|down)$", m.NewRoomCmd)
+	C.AddAlias(`^#map shift (?P<dir>(n|e|s|w|u|d))$`, m.ShiftCmd)
 
 	// Mapping commands
 	C.AddAlias("^#map undo$", m.UndoCmd)
@@ -32,17 +33,24 @@ func addCommands(m *Map) {
 	C.AddAlias("^#map stop$", m.StopCmd)
 	C.AddAlias("^#map autolink (?P<set>on|off)$", m.AutoLinkCmd)
 	C.AddAlias(`^#map link (?P<dir>(n|e|s|w|u|d)) (?P<id>\d+)$`, m.LinkDirCmd)
-	C.AddAlias(`^#map rmlink (?P<dir>(n|e|s|w|u|d))$`, m.UnlinkDirCmd) // bi-directional
-	C.AddAlias(`^#map rmexit (?P<dir>(n|e|s|w|u|d))$`, m.RmExitCmd)    // single
+	C.AddAlias(`^#map linkone (?P<dir>(n|e|s|w|u|d)) (?P<id>\d+)$`, m.LinkOneDirCmd)
+	C.AddAlias(`^#map rmlink (?P<dir>(n|e|s|w|u|d))$`, m.UnlinkDirCmd)      // uni-directional
+	C.AddAlias(`^#map rmlinks (?P<dir>(n|e|s|w|u|d))$`, m.UnlinkDirBothCmd) // bi-directional
+	C.AddAlias(`^#map rmexit (?P<dir>(n|e|s|w|u|d))$`, m.RmExitCmd)
+	C.AddAlias(`^#map rmroom (?P<id>\d+)$`, m.RmRoomCmd)               // bi-directional
+	C.AddAlias(`^#map rmroom (?P<dir>(n|e|s|w|u|d))$`, m.RmRoomDirCmd) // bi-directional
 	C.AddAlias(`^#map tag add (?P<tag>.+)$`, m.TagAddCmd)
 	C.AddAlias(`^#map tag delete (?P<tag>.+)$`, m.TagDeleteCmd)
 	C.AddAlias(`^#map tag show$`, m.TagShowCmd)
+	C.AddAlias(`^#map clean$`, m.CleanCmd)
 
 	// Move commands
 	C.AddAlias("^(?P<move>north|east|south|west|up|down|lo|loo|look|map|rec|reca|recal|recall)$", m.CaptureMoveCmd)
 	C.AddAlias(`^(?P<speedwalk>speedwalk)? ?(?P<steps>(\d*(n|e|s|w|u|d))+)$`, m.CaptureMovesCmd)
 	C.AddAlias(`^#map go (?P<id>\d+)$`, m.GoIDCmd)
+	C.AddAlias(`^#go (?P<id>\d+)$`, m.GoIDCmd)
 	C.AddAlias(`^#map go (?P<tag>\w+)$`, m.GoTagCmd)
+	C.AddAlias(`^#go (?P<tag>\w+)$`, m.GoTagCmd)
 }
 
 func (m *Map) GoIDCmd(t *trigger.Trigger) {
@@ -116,16 +124,85 @@ func (m *Map) TagDeleteCmd(t *trigger.Trigger) {
 
 func (m *Map) RmExitCmd(t *trigger.Trigger) {
 	if dir, ok := dirmap[t.Results["dir"]]; ok {
-		m.Unlink(m.room, dir, false)
+		delete(m.room.exits, dir)
+	}
+	m.Show("map")
+}
+
+func (m *Map) RmRoomDirCmd(t *trigger.Trigger) {
+	r := GetRoomFromDir(m.room, t.Results["dir"])
+	m.RmRoom(r)
+
+}
+
+func GetRoomFromDir(rm *Room, dir string) *Room {
+	if dir, ok := dirmap[dir]; ok {
+		return rm.exits[dir]
+	}
+	return nil
+}
+
+func (m *Map) RmRoomCmd(t *trigger.Trigger) {
+	if m.room == nil {
+		return
+	}
+	id, err := strconv.Atoi(t.Results["id"])
+	if err != nil {
+		C.Print("\nMAP: Invalid ID: " + t.Results["id"])
+		return
+	}
+	tr := m.GetRoom(id)
+	m.RmRoom(tr)
+}
+
+func (m *Map) RmRoom(rm *Room) {
+	if rm != nil {
+		for _, r0 := range m.rooms {
+			for dir, r1 := range r0.exits {
+				if rm == r1 {
+					// Remove links to the target room
+					m.Unlink(r0, dir, false)
+				}
+			}
+		}
+		delete(m.rooms, rm.ID)
+		delete(rm.area.Rooms, rm.ID)
 	}
 }
 
 func (m *Map) UnlinkDirCmd(t *trigger.Trigger) {
 	if dir, ok := dirmap[t.Results["dir"]]; ok {
-		m.Unlink(m.room, dir, true)
+		m.Unlink(m.room, dir, false)
 	}
+	m.Show("map")
 }
 
+func (m *Map) UnlinkDirBothCmd(t *trigger.Trigger) {
+	if dir, ok := dirmap[t.Results["dir"]]; ok {
+		m.Unlink(m.room, dir, true)
+	}
+	m.Show("map")
+}
+
+func (m *Map) LinkOneDirCmd(t *trigger.Trigger) {
+	if dir, ok := dirmap[t.Results["dir"]]; ok {
+		if m.room != nil {
+			id, err := strconv.Atoi(t.Results["id"])
+			if err != nil {
+				C.Print("\nMAP: Failed to parse id: " + t.Results["id"])
+				return
+			}
+			nr := m.GetRoom(id)
+			if nr == nil {
+				C.Print(fmt.Sprintf("\nMAP: Unable to find room with ID: %d", id))
+				return
+			}
+			m.room.exits[dir] = nr
+			C.Print(fmt.Sprintf("\nLinked %d to the %s", id, dir))
+		}
+	}
+	m.Show("map")
+}
 func (m *Map) LinkDirCmd(t *trigger.Trigger) {
 	if dir, ok := dirmap[t.Results["dir"]]; ok {
 		if m.room != nil {
@@ -174,6 +251,7 @@ func (m *Map) ResetCmd(t *trigger.Trigger) {
 func (m *Map) UndoCmd(t *trigger.Trigger) {
 	r := m.rooms[len(m.rooms)-1]
 	m.DeleteRoom(r)
+	m.Show("map")
 }
 
 func (m *Map) ShowCmd(t *trigger.Trigger) {
@@ -275,4 +353,24 @@ func (m *Map) DeleteCmd(t *trigger.Trigger) {
 // #map move <direction>
 func (m *Map) MoveCmd(t *trigger.Trigger) {
 
+}
+
+func (m *Map) ShiftCmd(t *trigger.Trigger) {
+	if m.room == nil {
+		C.Print("\nMAP: I don't know where you are. I can't shift.")
+		return
+	}
+	if dir, ok := dirmap[t.Results["dir"]]; ok {
+		nc := m.GetCoordinatesFromDir(m.room.Coordinates, dir)
+		m.room.Coordinates = nc
+		C.Print("\nShifted room " + string(dir) + ".\n")
+	}
+}
+
+func (m *Map) CleanCmd(t *trigger.Trigger) {
+	for _, r := range m.rooms {
+		if r != nil {
+			r.ExitString = strings.TrimSpace(r.ExitString)
+		}
+	}
 }
