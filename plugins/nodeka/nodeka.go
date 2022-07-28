@@ -9,20 +9,34 @@ import (
 	"github.com/seandheath/gomc/pkg/trigger"
 )
 
+type Position string
+
+const (
+	Sleep Position = "sleep"
+	Rest  Position = "rest"
+	Stand Position = "stand"
+	Fight Position = "fight"
+)
+
 type Character struct {
-	Exp           int
-	Align         int
-	Gold          int
-	Lag           int
-	CurrentHP     int
-	MaxHP         int
-	CurrentMana   int
-	MaxMana       int
-	CurrentSpirit int
-	MaxSpirit     int
-	CurrentEnd    int
-	MaxEnd        int
-	PKFlag        bool
+	Exp             int
+	Align           int
+	Gold            int
+	Lag             int
+	CurrentHP       int
+	MaxHP           int
+	CurrentMana     int
+	MaxMana         int
+	CurrentSpirit   int
+	MaxSpirit       int
+	CurrentEnd      int
+	MaxEnd          int
+	PKFlag          bool
+	Tank            string
+	TankCondition   string
+	Target          string
+	TargetCondition string
+	Position        Position
 }
 
 var Config *plugin.Config
@@ -43,12 +57,12 @@ func Init(c *client.Client, file string) *plugin.Config {
 
 	initOmap()
 	initFootpad()
-	ReplyQ = trigger.NewQueue(`^\[Reply:`)
-	DeadQ = trigger.NewQueue(`is dead!$`)
-	C.AddActionTrigger(ReplyQ.Trigger)
-	C.AddActionTrigger(DeadQ.Trigger)
+	//ReplyQ = trigger.NewQueue(`^\[Reply:`)
+	//DeadQ = trigger.NewQueue(`is dead!$`)
+	//C.AddActionTrigger(ReplyQ.Trigger)
+	//C.AddActionTrigger(DeadQ.Trigger)
 
-	abc := initAutobuff()
+	abc := initAbilities()
 	Config = plugin.Merge(cfg, abc)
 
 	// Sum damage up and show it at the beginning of the line
@@ -57,6 +71,7 @@ func Init(c *client.Client, file string) *plugin.Config {
 	C.AddFunction("ReplyPrompt", ReplyPrompt)
 	C.AddFunction("PoolPrompt", PoolPrompt)
 	C.AddFunction("CombatPrompt", CombatPrompt)
+	C.AddFunction("AbilityFailed", AbilityFailed)
 
 	return Config
 }
@@ -112,6 +127,11 @@ func PoolPrompt(t *trigger.Trigger) {
 }
 
 func ReplyPrompt(t *trigger.Trigger) {
+	if My.Position == Fight {
+		// Just finished fighting
+		My.Position = Stand
+		Attempt = nil
+	}
 	My.Exp = getResult("exp", t.Results)
 	My.Gold = getResult("gold", t.Results)
 	My.Align = getResult("align", t.Results)
@@ -124,5 +144,13 @@ func ReplyPrompt(t *trigger.Trigger) {
 }
 
 func CombatPrompt(t *trigger.Trigger) {
-	return //TODO
+	My.Position = Fight
+	My.Tank = t.Results["tank"]
+	My.TankCondition = t.Results["tankcond"]
+	My.Target = t.Results["target"]
+	My.TargetCondition = t.Results["targetcond"]
+	My.Lag = getResult("lag", t.Results)
+	if My.Lag < 2000 {
+		DoCombo()
+	}
 }

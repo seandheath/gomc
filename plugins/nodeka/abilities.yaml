@@ -1,4 +1,23 @@
 ---
+buffs:
+  - singularity of fate
+  - archers competence
+  - obfuscate
+  - winded passage 
+  - acrobatics 
+  - unseen motion 
+  - cloak
+  - shadow-string
+combos:
+  default:
+    - refined tactics 
+    - trip
+    - kick 
+    - striking fist 
+    - glancing pierce 
+    - ashi barai kick 
+    - one of four, pivot 
+    - critical attack
 abilities:
   refined tactics:
     activation:
@@ -36,3 +55,45 @@ abilities:
     activation:
       - '^You feel lucky'
     prevention: singularity form
+  kick:
+    prevention: kick - basic skill level
+    activation: 
+      - '^Your kick'
+      - '^Almost falling to the ground, you barely retain your balance'
+      - '^You misfire your kick at' 
+      - 'dodges your kick'
+      - 'blocks your kick'
+      - 'parries your kick'
+      - 'mentally places your leg'
+  striking fist:
+    prevention: hand form - basic skill
+    activation:
+      - '^Your striking fist'
+      - 'stops your striking fist'
+      - 'parries your striking fist'
+      - 'dodges your striking fist'
+  critical attack:
+    activation:
+      - '^Your critical blow'
+  trip:
+    prevention: trip - basic skill level
+    activation:
+      - '^Your kick TRIPS'
+  glancing pierce:
+    prevention: adroit combat feat - basic skill
+    activation:
+      - '^Your glancing strike'
+  ashi barai kick:
+    prevention: kick - intermediate skill level
+    activation:
+      - '^Your sweeping kick'
+      - 'stops your sweep with'
+      - 'parries your sweep'
+      - 'dodges your sweep'
+  one of four, pivot:
+    prevention: adroit combat feat - intermediate skill
+    activation:
+      - '^Your quarter-parallel attack'
+  malignant injury:
+    activation:
+      - '^Your critically natured attack'

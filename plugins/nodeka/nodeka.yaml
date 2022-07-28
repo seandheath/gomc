@@ -13,7 +13,7 @@ actions:
   '^Increased mastery in your ability of': '#capture'
   '^\[Reply: (?P<reply>[\w'' -]*)?\]\[Xp:(?P<exp>\d+)\]\[A:(?P<align>.+)\]\[G:(?P<gold>\d+)\]\[(?P<lag>\d+)\]\[(?P<pk>PKer)?\]$': '#func ReplyPrompt'
   '^\[H:(?P<chp>\d+)/(?P<mhp>\d+)\]\[M:(<?P<cm>\d+)/(<?P<mm>\d+)\]\[S:(<?P<cs>\d+)/(<?P<ms>\d+)\]\[E:(<?P<ce>\d+)/(<?P<me>\d+)\]$': '#func PoolPrompt'
-  '^\[(.+):\((.+)\)\]\[(.+):\((.+)\)\]\[(\d+)\]$': '#func CombatPrompt'
+  '^\[(?P<tank>.+):\((?P<tankcond>.+)\)\]\[(?P<target>.+):\((?P<targetcond>.+)\)\]\[(?P<lag>\d+)\]$': '#func CombatPrompt'
   #'^The aura of this place heals you\.': '#tick'
 
 aliases:
