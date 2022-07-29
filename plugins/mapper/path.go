@@ -5,18 +5,21 @@ import (
 	"time"
 )
 
-func GetPath(start *Room, finish *Room) ([]byte, int) {
+func (m *Map) GetPath(start *Room, finish *Room) ([]byte, int) {
 	tstart := time.Now()
-	path, length := dijkstra(start, finish)
-	if path == nil {
+	m.Path = dijkstra(start, finish)
+	pathcmd := getPathCommands(m.Path)
+	if len(pathcmd) == 0 || m.Path == nil {
+		m.Path = nil
+		m.Walking = false
 		C.Print("\nError finding path between rooms.\n")
 		return nil, 0
 	}
 	C.Print(fmt.Sprintf("\nPath found in %dus.\n", time.Since(tstart).Microseconds()))
-	return path, length
+	return pathcmd, len(m.Path)
 }
 
-func dijkstra(start *Room, finish *Room) ([]byte, int) {
+func dijkstra(start *Room, finish *Room) []*Room {
 	openSet := []*Room{}
 	cameFrom := map[*Room]*Room{}
 	gScore := map[*Room]int{}
@@ -30,7 +33,7 @@ func dijkstra(start *Room, finish *Room) ([]byte, int) {
 			return rebuildPath(start, cameFrom, currentRoom)
 		}
 		openSet = openSet[1:]
-		for _, exit := range currentRoom.exits {
+		for _, exit := range currentRoom.Exits {
 			if exit != nil {
 				score := gScore[currentRoom] + 1
 				if lastScore, ok := gScore[exit]; ok {
@@ -50,30 +53,44 @@ func dijkstra(start *Room, finish *Room) ([]byte, int) {
 		}
 	}
 	C.Print("\nUnable to find a path between the provided rooms.\n")
-	return nil, 0
+	return nil
 }
 
-func rebuildPath(start *Room, cameFrom map[*Room]*Room, currentRoom *Room) ([]byte, int) {
-	path := []byte{}
-	length := 0
-	for currentRoom != start {
-		dir := getDirection(cameFrom[currentRoom], currentRoom)
+func getPathCommands(rs []*Room) []byte {
+	pathcmd := []byte{}
+	for i := 0; i < len(rs)-1; i++ {
+		dir := getDirection(rs[i], rs[i+1])
 		if dir == "" {
-			C.Print("\nError rebuilding path between rooms.\n")
-			return nil, 0
+			C.Print("\nError getting path commands.\n")
+			return nil
 		}
-		path = append([]byte{shortdirs[dir]}, path...)
-		if door, ok := cameFrom[currentRoom].Doors[dir]; ok {
-			path = append([]byte(";open "+string(dir)+"."+door.Name+";"), path...)
+		if door, ok := rs[i].Doors[dir]; ok {
+			pathcmd = append(pathcmd, []byte(";open "+string(dir)+"."+door.Name+";")...)
 		}
-		currentRoom = cameFrom[currentRoom]
-		length++
+		pathcmd = append(pathcmd, shortdirs[dir])
 	}
-	return path, length
+	return pathcmd
+}
+
+func rebuildPath(start *Room, cameFrom map[*Room]*Room, currentRoom *Room) []*Room {
+	path := []*Room{currentRoom}
+	for currentRoom != start {
+		//dir := getDirection(cameFrom[currentRoom], currentRoom)
+		//if dir == "" {
+		//C.Print("\nError rebuilding path between rooms.\n")
+		//return nil, 0
+		//}
+		path = append([]*Room{cameFrom[currentRoom]}, path...)
+		//if door, ok := cameFrom[currentRoom].Doors[dir]; ok {
+		//path = append([]byte(";open "+string(dir)+"."+door.Name+";"), path...)
+		//}
+		currentRoom = cameFrom[currentRoom]
+	}
+	return path
 }
 
 func getDirection(from *Room, to *Room) Direction {
-	for dir, e := range from.exits {
+	for dir, e := range from.Exits {
 		if e == to {
 			return dir
 		}

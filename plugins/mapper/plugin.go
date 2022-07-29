@@ -153,3 +153,7 @@ func (m *Map) Load(path string) {
 	C.Print("\nMAP: Loaded " + path)
 	m.Show("map")
 }
+
+func GetMap() *Map {
+	return M
+}

@@ -20,23 +20,29 @@ func (m *Map) MoveDone(t *trigger.Trigger) {
 		// the map to the new room.
 		nr := m.checkMove(move)
 		if nr != nil {
-			m.room = nr
+			m.Room = nr
 		} else {
 			// Couldn't find the room... uh oh
 			pr := m.FindRoom(m.rmName, m.rmExitString)
 			if len(pr) <= 0 {
 				// No room matches this description, we're lost.
-				m.room = nil
+				m.Room = nil
 			} else if len(pr) == 1 {
 				// There is only one room that matches this description, so
 				// we'll just set ourselves to it
-				m.room = pr[0]
+				m.Room = pr[0]
 			} else {
 				// There are multiple rooms that match this description, so
 				// we'll need to ask the user which room they want to move to.
 				// For now we'll just choose the first one
-				m.room = pr[0]
+				m.Room = pr[0]
 			}
+		}
+		if m.Walking && m.Room == m.Path[len(m.Path)-1] {
+			// We made it
+			m.Path = nil
+			m.Walking = false
+			m.PathQ.Do()
 		}
 		m.Show("map")
 	}
@@ -53,13 +59,13 @@ func (m *Map) FindRoom(name string, exits string) []*Room {
 }
 
 func (m *Map) checkMove(move Direction) *Room {
-	if m.room == nil {
+	if m.Room == nil {
 		return nil
 	}
 
 	if move == Look {
-		if m.checkRoom(m.room) {
-			return m.room
+		if m.checkRoom(m.Room) {
+			return m.Room
 		} else {
 			// findroom
 			return nil
@@ -73,7 +79,7 @@ func (m *Map) checkMove(move Direction) *Room {
 	}
 
 	// This room doesn't have an exit in that direction...
-	if r, ok := m.room.exits[move]; !ok {
+	if r, ok := m.Room.Exits[move]; !ok {
 		return nil
 	} else {
 		if r != nil {
@@ -99,13 +105,13 @@ func (m *Map) checkMove(move Direction) *Room {
 }
 
 func (m *Map) findRoom(lastMove Direction) *Room {
-	c := m.GetCoordinatesFromDir(m.room.Coordinates, lastMove)
-	prc := m.GetRoomAtCoordinates(m.room.area, c)
+	c := m.GetCoordinatesFromDir(m.Room.Coordinates, lastMove)
+	prc := m.GetRoomAtCoordinates(m.Room.Area, c)
 	if len(prc) == 1 {
 		// There is one room at the coordinates specified, let's check if we're in it
 		if m.checkRoom(prc[0]) {
 			// We're in the room at those coords, add the link
-			m.linkRooms(m.room, prc[0], lastMove)
+			m.linkRooms(m.Room, prc[0], lastMove)
 			return prc[0]
 		}
 	} else if len(prc) > 1 {
@@ -155,7 +161,7 @@ func (m *Map) MoveFail(t *trigger.Trigger) {
 // room can be set using the `#map set recall <id>` command.
 func (m *Map) MoveRecall(t *trigger.Trigger) {
 	if _, ok := m.rooms[m.Recall]; ok {
-		m.room = m.rooms[m.Recall]
+		m.Room = m.rooms[m.Recall]
 	}
 }
 

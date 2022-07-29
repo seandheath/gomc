@@ -6,6 +6,7 @@ import (
 
 	"github.com/seandheath/gomc/internal/client"
 	"github.com/seandheath/gomc/pkg/plugin"
+	"github.com/seandheath/gomc/pkg/queue"
 	"github.com/seandheath/gomc/pkg/trigger"
 )
 
@@ -41,8 +42,8 @@ type Character struct {
 
 var Config *plugin.Config
 var C *client.Client
-var ReplyQ *trigger.Queue
-var DeadQ *trigger.Queue
+var ReplyQ *queue.Queue
+var DeadQ *queue.Queue
 var My Character
 
 func Init(c *client.Client, file string) *plugin.Config {
@@ -57,7 +58,8 @@ func Init(c *client.Client, file string) *plugin.Config {
 
 	initOmap()
 	initFootpad()
-	//ReplyQ = trigger.NewQueue(`^\[Reply:`)
+	initBot()
+	ReplyQ = queue.NewQueue()
 	//DeadQ = trigger.NewQueue(`is dead!$`)
 	//C.AddActionTrigger(ReplyQ.Trigger)
 	//C.AddActionTrigger(DeadQ.Trigger)
@@ -141,6 +143,7 @@ func ReplyPrompt(t *trigger.Trigger) {
 	} else {
 		My.PKFlag = false
 	}
+	ReplyQ.Do()
 }
 
 func CombatPrompt(t *trigger.Trigger) {

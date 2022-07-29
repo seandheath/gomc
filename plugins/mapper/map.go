@@ -1,8 +1,10 @@
 package mapper
 
+import "github.com/seandheath/gomc/pkg/queue"
+
 type Map struct {
 	Recall       int              `yaml:"recall"` // Special room for recall TODO: make this configurable for multiple rooms/triggers
-	room         *Room            // Current room
+	Room         *Room            // Current room
 	Areas        map[string]*Area `yaml:"areas"` // All areas in the map, name is key
 	rooms        map[int]*Room    // All rooms in the map, ID is key
 	nextMoves    []Direction      // queued up moves
@@ -12,6 +14,9 @@ type Map struct {
 	Mapping      bool             `yaml:"mapping"`  // do not create or link rooms if we're not in mapping mode, puts map in read-only state
 	Debug        bool             `yaml:"debug"`    // show debug information at the top of the map output
 	Autolink     bool             `yaml:"autolink"` // automatically link rooms together when they are adjacent
+	PathQ        *queue.Queue
+	Walking      bool
+	Path         []*Room
 }
 
 func NewMap() *Map {
@@ -43,7 +48,7 @@ func (m *Map) Rebuild() {
 		// get all the room objects from each area
 		for _, r := range a.Rooms {
 			if r != nil {
-				r.area = a
+				r.Area = a
 				// add the room to the map
 				m.rooms[r.ID] = r
 			}
@@ -52,13 +57,13 @@ func (m *Map) Rebuild() {
 	// Go through all the rooms and populate the exit arrays with pointers to
 	// the room objects
 	for _, cr := range m.rooms {
-		cr.exits = map[Direction]*Room{}
+		cr.Exits = map[Direction]*Room{}
 		for dir, id := range cr.ExitIDs {
 			if nr, ok := m.rooms[id]; ok {
-				cr.exits[dir] = nr
+				cr.Exits[dir] = nr
 			} else {
 				if id == 0 {
-					cr.exits[dir] = nil
+					cr.Exits[dir] = nil
 				}
 			}
 		}
@@ -69,7 +74,7 @@ func (m *Map) PrepareSave() {
 	for _, r := range m.rooms {
 		if r != nil {
 			r.ExitIDs = map[Direction]int{}
-			for dir, nr := range r.exits {
+			for dir, nr := range r.Exits {
 				if nr != nil {
 					r.ExitIDs[dir] = nr.ID
 				} else {
@@ -82,7 +87,7 @@ func (m *Map) PrepareSave() {
 
 func (m *Map) Reset() {
 	m.Recall = 0
-	m.room = nil
+	m.Room = nil
 	m.Areas = map[string]*Area{}
 	m.rooms = map[int]*Room{}
 	m.nextMoves = []Direction{}
@@ -92,6 +97,9 @@ func (m *Map) Reset() {
 	m.Mapping = true
 	m.Debug = true
 	m.Autolink = true
+	m.Walking = false
+	m.Path = nil
+	m.PathQ = queue.NewQueue()
 	C.Print("\nMap created. Add an area to start mapping. Type #map new area <name>")
 }
 
@@ -118,7 +126,7 @@ func (m *Map) AddRoom(room *Room) {
 }
 
 func (m *Map) SetRoom(r *Room) {
-	m.room = r
+	m.Room = r
 }
 
 // GetNewID steps through all the rooms in the map and identifies the lowest

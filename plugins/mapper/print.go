@@ -9,7 +9,7 @@ import (
 // can be found in map.md
 func (m *Map) print(width, height int, unicode bool) []rune {
 	s := []rune{}
-	if m.room == nil {
+	if m.Room == nil {
 		// TODO better error message
 		s = append(s, []rune("Map location unknown")...)
 		for i := 1; i < height; i++ {
@@ -19,7 +19,7 @@ func (m *Map) print(width, height int, unicode bool) []rune {
 	}
 
 	if m.Debug {
-		s = append(s, []rune(fmt.Sprintf("%s:%d:%s\n", m.room.area.Name, m.room.ID, m.room.Name))...)
+		s = append(s, []rune(fmt.Sprintf("%s:%d:%s\n", m.Room.Area.Name, m.Room.ID, m.Room.Name))...)
 		//s = append(s, []rune("Name: "+m.room.Name+"\n")...)
 		//s = append(s, []rune(fmt.Sprintf("ID: %d\n", m.room.ID))...)
 		//s = append(s, []rune("Coordinates: "+m.room.Coordinates.String()+"\n")...)
@@ -56,10 +56,10 @@ func (m *Map) print(width, height int, unicode bool) []rune {
 		for col := 0; col < nx; col++ {
 			// Gets the room at the cooridnate offset from the current room and
 			// on the same Z axis
-			rs := m.GetRoomAtCoordinates(m.room.area, Coordinates{
-				(m.room.Coordinates.X - cx) + col,
-				(m.room.Coordinates.Y + cy) - row,
-				m.room.Coordinates.Z,
+			rs := m.GetRoomAtCoordinates(m.Room.Area, Coordinates{
+				(m.Room.Coordinates.X - cx) + col,
+				(m.Room.Coordinates.Y + cy) - row,
+				m.Room.Coordinates.Z,
 			})
 			if len(rs) <= 0 {
 				// No room
@@ -143,9 +143,9 @@ func getAsciiRow(row []*Room, collision []bool, center bool) []rune {
 func getExitChar(r *Room, dir Direction) rune {
 	switch dir {
 	case North, East, South, West:
-		nr := r.exits[dir]
+		nr := r.Exits[dir]
 		if nr != nil {
-			if nr.area != r.area {
+			if nr.Area != r.Area {
 				return '?'
 			}
 		}
@@ -170,10 +170,10 @@ func UnicodeRoom(r *Room) rune {
 	if r == nil {
 		return ' '
 	}
-	n := checkmap(North, r.exits)
-	e := checkmap(East, r.exits)
-	s := checkmap(South, r.exits)
-	w := checkmap(West, r.exits)
+	n := checkmap(North, r.Exits)
+	e := checkmap(East, r.Exits)
+	s := checkmap(South, r.Exits)
+	w := checkmap(West, r.Exits)
 
 	if n && e && s && w {
 		return '\u253C'
@@ -235,7 +235,7 @@ func AsciiRoom(r *Room) [][]rune {
 		rs[i][2] = ' '
 	}
 	if r != nil {
-		for dir := range r.exits {
+		for dir := range r.Exits {
 			switch dir {
 			case Up:
 				rs[0][2] = getExitChar(r, Up)

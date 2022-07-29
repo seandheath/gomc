@@ -54,23 +54,23 @@ func addCommands(m *Map) {
 }
 
 func (m *Map) GoIDCmd(t *trigger.Trigger) {
-	if m.room == nil {
+	if m.Room == nil {
 		C.Print("\nMAP: I don't know where you are, so I can't go there.")
 		return
 	}
-	start := m.room
+	start := m.Room
 	id, err := strconv.Atoi(t.Results["id"])
 	if err != nil {
 		C.Print("\nMAP: Invalid ID: " + t.Results["id"])
 		return
 	}
 	finish := m.GetRoom(id)
-	path, len := GetPath(start, finish)
+	path, len := m.GetPath(start, finish)
 	C.Parse(string(path))
 	C.Print(fmt.Sprintf("\nPath found, length: %d, steps: %s\n\n", len, string(path)))
 }
 func (m *Map) GoTagCmd(t *trigger.Trigger) {
-	if m.room == nil {
+	if m.Room == nil {
 		C.Print("\nMAP: I don't know where you are, so I can't go there.")
 		return
 	}
@@ -83,37 +83,41 @@ func (m *Map) GoTagCmd(t *trigger.Trigger) {
 	length := math.MaxInt
 
 	for _, rm := range rms {
-		p, l := GetPath(m.room, rm)
+		p, l := m.GetPath(m.Room, rm)
 		if l < length {
 			path = p
 			length = l
 		}
 	}
 	if len(path) > 0 {
+		m.Walking = true
 		C.Parse(string(path))
 		C.Print(fmt.Sprintf("\nPath found, length: %d, steps: %s\n\n", length, string(path)))
 	} else {
+		m.Walking = false
+		m.Path = nil
+		m.PathQ.Clear()
 		C.Print("\nMAP: No path found.")
 	}
 }
 
 func (m *Map) TagShowCmd(t *trigger.Trigger) {
-	if m.room != nil {
-		C.Print("\nTags: " + strings.Join(m.room.Tags, ", "))
+	if m.Room != nil {
+		C.Print("\nTags: " + strings.Join(m.Room.Tags, ", "))
 	}
 }
 func (m *Map) TagAddCmd(t *trigger.Trigger) {
-	if m.room != nil {
-		m.room.Tags = append(m.room.Tags, t.Results["tag"])
+	if m.Room != nil {
+		m.Room.Tags = append(m.Room.Tags, t.Results["tag"])
 		C.Print("\nTag added: " + t.Results["tag"])
 	}
 }
 
 func (m *Map) TagDeleteCmd(t *trigger.Trigger) {
-	if m.room != nil {
-		for i, tag := range m.room.Tags {
+	if m.Room != nil {
+		for i, tag := range m.Room.Tags {
 			if tag == t.Results["tag"] {
-				m.room.Tags = append(m.room.Tags[:i], m.room.Tags[i+1:]...)
+				m.Room.Tags = append(m.Room.Tags[:i], m.Room.Tags[i+1:]...)
 				C.Print("\nTag deleted: " + t.Results["tag"])
 				return
 			}
@@ -124,26 +128,26 @@ func (m *Map) TagDeleteCmd(t *trigger.Trigger) {
 
 func (m *Map) RmExitCmd(t *trigger.Trigger) {
 	if dir, ok := dirmap[t.Results["dir"]]; ok {
-		delete(m.room.exits, dir)
+		delete(m.Room.Exits, dir)
 	}
 	m.Show("map")
 }
 
 func (m *Map) RmRoomDirCmd(t *trigger.Trigger) {
-	r := GetRoomFromDir(m.room, t.Results["dir"])
+	r := GetRoomFromDir(m.Room, t.Results["dir"])
 	m.RmRoom(r)
 
 }
 
 func GetRoomFromDir(rm *Room, dir string) *Room {
 	if dir, ok := dirmap[dir]; ok {
-		return rm.exits[dir]
+		return rm.Exits[dir]
 	}
 	return nil
 }
 
 func (m *Map) RmRoomCmd(t *trigger.Trigger) {
-	if m.room == nil {
+	if m.Room == nil {
 		return
 	}
 	id, err := strconv.Atoi(t.Results["id"])
@@ -158,7 +162,7 @@ func (m *Map) RmRoomCmd(t *trigger.Trigger) {
 func (m *Map) RmRoom(rm *Room) {
 	if rm != nil {
 		for _, r0 := range m.rooms {
-			for dir, r1 := range r0.exits {
+			for dir, r1 := range r0.Exits {
 				if rm == r1 {
 					// Remove links to the target room
 					m.Unlink(r0, dir, false)
@@ -166,27 +170,27 @@ func (m *Map) RmRoom(rm *Room) {
 			}
 		}
 		delete(m.rooms, rm.ID)
-		delete(rm.area.Rooms, rm.ID)
+		delete(rm.Area.Rooms, rm.ID)
 	}
 }
 
 func (m *Map) UnlinkDirCmd(t *trigger.Trigger) {
 	if dir, ok := dirmap[t.Results["dir"]]; ok {
-		m.Unlink(m.room, dir, false)
+		m.Unlink(m.Room, dir, false)
 	}
 	m.Show("map")
 }
 
 func (m *Map) UnlinkDirBothCmd(t *trigger.Trigger) {
 	if dir, ok := dirmap[t.Results["dir"]]; ok {
-		m.Unlink(m.room, dir, true)
+		m.Unlink(m.Room, dir, true)
 	}
 	m.Show("map")
 }
 
 func (m *Map) LinkOneDirCmd(t *trigger.Trigger) {
 	if dir, ok := dirmap[t.Results["dir"]]; ok {
-		if m.room != nil {
+		if m.Room != nil {
 			id, err := strconv.Atoi(t.Results["id"])
 			if err != nil {
 				C.Print("\nMAP: Failed to parse id: " + t.Results["id"])
@@ -197,7 +201,7 @@ func (m *Map) LinkOneDirCmd(t *trigger.Trigger) {
 				C.Print(fmt.Sprintf("\nMAP: Unable to find room with ID: %d", id))
 				return
 			}
-			m.room.exits[dir] = nr
+			m.Room.Exits[dir] = nr
 			C.Print(fmt.Sprintf("\nLinked %d to the %s", id, dir))
 		}
 	}
@@ -205,7 +209,7 @@ func (m *Map) LinkOneDirCmd(t *trigger.Trigger) {
 }
 func (m *Map) LinkDirCmd(t *trigger.Trigger) {
 	if dir, ok := dirmap[t.Results["dir"]]; ok {
-		if m.room != nil {
+		if m.Room != nil {
 			id, err := strconv.Atoi(t.Results["id"])
 			if err != nil {
 				C.Print("\nMAP: Failed to parse id: " + t.Results["id"])
@@ -216,8 +220,8 @@ func (m *Map) LinkDirCmd(t *trigger.Trigger) {
 				C.Print(fmt.Sprintf("\nMAP: Unable to find room with ID: %d", id))
 				return
 			}
-			m.room.exits[dir] = nr
-			nr.exits[reverse[dir]] = m.room
+			m.Room.Exits[dir] = nr
+			nr.Exits[reverse[dir]] = m.Room
 			C.Print(fmt.Sprintf("\nLinked %d to the %s", id, dir))
 		}
 	}
@@ -281,15 +285,15 @@ func (m *Map) NewAreaCmd(t *trigger.Trigger) {
 	a := m.NewArea(name)
 
 	// Move our current room to the new area
-	if m.room != nil {
-		m.room.area.RemoveRoom(m.room)
-		m.room.area = a
-		a.AddRoom(m.room)
-		m.room.Coordinates = Coordinates{0, 0, 0} // Every area has it's own coordinate set
+	if m.Room != nil {
+		m.Room.Area.RemoveRoom(m.Room)
+		m.Room.Area = a
+		a.AddRoom(m.Room)
+		m.Room.Coordinates = Coordinates{0, 0, 0} // Every area has it's own coordinate set
 	} else {
 		// Room is nil so we don't have any rooms yet, make one
 		r := m.NewRoom(a, m.rmName, m.rmExitString, Coordinates{0, 0, 0})
-		m.room = r
+		m.Room = r
 	}
 
 	C.Print("\nArea created: " + name)
@@ -297,7 +301,7 @@ func (m *Map) NewAreaCmd(t *trigger.Trigger) {
 }
 
 func (m *Map) NewRoomCmd(t *trigger.Trigger) {
-	if m.room == nil {
+	if m.Room == nil {
 		C.Print("\nMAP: I don't know where you are. I can't add a room.")
 		return
 	}
@@ -356,13 +360,13 @@ func (m *Map) MoveCmd(t *trigger.Trigger) {
 }
 
 func (m *Map) ShiftCmd(t *trigger.Trigger) {
-	if m.room == nil {
+	if m.Room == nil {
 		C.Print("\nMAP: I don't know where you are. I can't shift.")
 		return
 	}
 	if dir, ok := dirmap[t.Results["dir"]]; ok {
-		nc := m.GetCoordinatesFromDir(m.room.Coordinates, dir)
-		m.room.Coordinates = nc
+		nc := m.GetCoordinatesFromDir(m.Room.Coordinates, dir)
+		m.Room.Coordinates = nc
 		C.Print("\nShifted room " + string(dir) + ".\n")
 	}
 }

@@ -8,24 +8,24 @@ import (
 
 // AddRoomFromMove takes a direction
 func (m *Map) AddRoomFromMove(move Direction) *Room {
-	if m.room == nil {
+	if m.Room == nil {
 		// I don't know where I am so I can't link a room
 		// TODO print some message here
 		C.Print("\nCan't create a room, I don't know where I am. Set your current room with '#map goto <roomID>'")
 		return nil
 	}
 	// We have a room that we are coming from, let's add a room to it
-	coordinates := m.GetCoordinatesFromDir(m.room.Coordinates, move)
-	nr := m.NewRoom(m.room.area, m.rmName, m.rmExitString, coordinates)
+	coordinates := m.GetCoordinatesFromDir(m.Room.Coordinates, move)
+	nr := m.NewRoom(m.Room.Area, m.rmName, m.rmExitString, coordinates)
 
 	// Add exits to each room that link to each other if autolink is enabled
 	if m.Autolink {
-		for dir, r := range nr.exits {
+		for dir, r := range nr.Exits {
 			if r == nil {
 				// We have a direction but no room, check if there is a room at
 				// those coordinates
 				coordinates := m.GetCoordinatesFromDir(nr.Coordinates, dir)
-				pr := m.GetRoomAtCoordinates(nr.area, coordinates)
+				pr := m.GetRoomAtCoordinates(nr.Area, coordinates)
 				if len(pr) == 1 {
 					if pr[0] != nil {
 						// Only one room at those coordinates, link that mother.
@@ -37,7 +37,7 @@ func (m *Map) AddRoomFromMove(move Direction) *Room {
 	} else {
 
 		// Only link the previous move
-		m.linkRooms(m.room, nr, move)
+		m.linkRooms(m.Room, nr, move)
 	}
 	return nr
 }
@@ -45,9 +45,9 @@ func (m *Map) AddRoomFromMove(move Direction) *Room {
 // linkRooms connects two rooms bidirectionally by adding exits to each room
 func (m *Map) linkRooms(from *Room, to *Room, move Direction) {
 	// Add the exit to the from room
-	from.exits[move] = to
+	from.Exits[move] = to
 	// Add the exit to the to room
-	to.exits[reverse[move]] = from
+	to.Exits[reverse[move]] = from
 
 	// If the room we're coming from has a door at that exit then we need to
 	// add the door to this room's door array as well
@@ -86,14 +86,14 @@ func (m *Map) ShiftRoom(room *Room, direction Direction) *Room { return nil }
 
 func (m *Map) MapDoor(t *trigger.Trigger) {
 	// only auto-add doors if we're mapping
-	if m.Mapping && m.room != nil {
+	if m.Mapping && m.Room != nil {
 		// make sure we have a valid direction
 		if dir, ok := dirmap[t.Results["dir"]]; ok {
 			open := t.Results["open"]
 			name := t.Results["door"]
 			locked := strings.Contains(open, "lock")
-			addDoor(m.room, dir, name, locked)
-			if r, ok := m.room.exits[dir]; ok {
+			addDoor(m.Room, dir, name, locked)
+			if r, ok := m.Room.Exits[dir]; ok {
 				if r != nil {
 					addDoor(r, reverse[dir], name, locked)
 				}
@@ -121,13 +121,13 @@ func addDoor(room *Room, dir Direction, name string, locked bool) {
 
 func (m *Map) Unlink(room *Room, dir Direction, both bool) {
 	if room != nil {
-		if r, ok := room.exits[dir]; ok {
+		if r, ok := room.Exits[dir]; ok {
 			if r != nil && both {
 				// There is a room there now, we'll unlink us from them
 				// TODO might want to have a one-way here?
-				r.exits[reverse[dir]] = nil
+				r.Exits[reverse[dir]] = nil
 			}
-			room.exits[dir] = nil
+			room.Exits[dir] = nil
 		}
 	}
 }

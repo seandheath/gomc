@@ -19,11 +19,11 @@ type Door struct {
 type Room struct {
 	ID          int                 `yaml:"id"`   // Unique ID
 	Name        string              `yaml:"name"` // Room name as seen in the game
-	exits       map[Direction]*Room // Need to be reconstituted on load
+	Exits       map[Direction]*Room // Need to be reconstituted on load
 	Doors       map[Direction]*Door `yaml:"doors"`
-	ExitIDs     map[Direction]int   `yaml:"exits"`
+	ExitIDs     map[Direction]int   `yaml:"exitIDs"`
 	ExitString  string              `yaml:"exitString"`
-	area        *Area               // The parent area of this room
+	Area        *Area               // The parent area of this room
 	Coordinates Coordinates         `yaml:"coordinates"` // The coordinates of this room
 	Tags        []string            `yaml:"tags"`        // List of key:value flags for this room
 	//extraIdentifiers map[string]string `yaml:"identifier"`  // A list of key:value identifiers for this room
@@ -33,9 +33,9 @@ func (m *Map) NewRoom(a *Area, name, exits string, c Coordinates) *Room {
 	r := &Room{}
 	r.ID = m.GetNewID()
 	r.Name = name
-	r.area = a
+	r.Area = a
 	r.Coordinates = c
-	r.exits = GetExits(exits)
+	r.Exits = GetExits(exits)
 	r.Doors = map[Direction]*Door{}
 	r.Tags = []string{}
 	r.ExitString = strings.TrimSpace(exits)
