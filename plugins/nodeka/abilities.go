@@ -91,14 +91,14 @@ func AutobuffOff(t *trigger.Trigger) {
 var AbilityFired trigger.Func = func(t *trigger.Trigger) {
 	if name, ok := activations[t.String()]; ok { // Get the ab name from the activation string map
 		if ab, ok := abilities[name]; ok { // Get the buff from our buff list
-			if Attempt == ab {
-				// We were attempting this buff, we saw it so we clear attempt
-				Attempt = nil
-				DoCombo()
-			}
 			ab.IsActive = true // Set it to active
 			if ab.Prevention != "" {
 				activePreventions[ab.Prevention] = true
+			}
+			if Attempt == ab {
+				// We were attempting this buff, we saw it so we clear attempt
+				Attempt = nil
+				//DoCombo()
 			}
 		}
 	}
@@ -165,7 +165,8 @@ func DoCombo() {
 		for _, name := range combo {
 			if ab, ok := abilities[name]; ok {
 				if !isPrevented(ab) {
-					Attempt = DoAbility(name, ab)
+					Attempt = ab
+					DoAbility(name, ab)
 					return
 				}
 			} else {
